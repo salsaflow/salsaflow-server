@@ -14,5 +14,5 @@ func main() {
 	flagAddress := flag.String("addr", ":3000", "network address")
 
 	n := negroni.Classic()
-	graceful.Run(*flagAddress, 10*time.Second, n)
+	graceful.Run(*flagAddress, 3*time.Second, n)
 }
