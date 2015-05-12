@@ -3,6 +3,7 @@ package main
 import (
 	// Stdlib
 	"flag"
+	"time"
 
 	// Vendor
 	"github.com/codegangsta/negroni"
