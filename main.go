@@ -6,11 +6,12 @@ import (
 
 	// Vendor
 	"github.com/codegangsta/negroni"
+	"gopkg.in/tylerb/graceful.v1"
 )
 
 func main() {
 	flagAddress := flag.String("addr", ":3000", "network address")
 
 	n := negroni.Classic()
-	n.Run(*flagAddress)
+	graceful.Run(*flagAddress, 10*time.Second, n)
 }
