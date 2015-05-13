@@ -1,0 +1,23 @@
+{
+	"ImportPath": "github.com/salsaflow/salsaflow-server",
+	"GoVersion": "go1.4.2",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/codegangsta/negroni",
+			"Comment": "v0.1-70-gc7477ad",
+			"Rev": "c7477ad8e330bef55bf1ebe300cf8aa67c492d1b"
+		},
+		{
+			"ImportPath": "golang.org/x/net/netutil",
+			"Rev": "e0403b4e005737430c05a57aac078479844f919c"
+		},
+		{
+			"ImportPath": "gopkg.in/tylerb/graceful.v1",
+			"Comment": "v1",
+			"Rev": "d506b859c378b0e4a1b16d44021f3937f9ba4578"
+		}
+	]
+}
