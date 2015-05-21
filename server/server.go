@@ -113,7 +113,7 @@ func (srv *Server) writeUserEmail(w http.ResponseWriter, token noauth2.Token) {
 	fmt.Fprintln(w, me.DisplayName)
 	fmt.Fprintln(w, me.Domain)
 	for _, email := range me.Emails {
-		fmt.Fprintln(w, email)
+		fmt.Fprintln(w, email.Value)
 	}
 }
 
