@@ -2,6 +2,8 @@ package server
 
 import (
 	// Stdlib
+	"io"
+	"net/http"
 	"time"
 
 	// Vendor
@@ -55,6 +57,9 @@ func SetShutdownTimeout(timeout time.Duration) OptionFunc {
 func (srv *Server) Run() {
 	// Top-level router.
 	router := mux.NewRouter()
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "OK")
+	})
 
 	// Restricted section.
 	secureRouter := mux.NewRouter()
