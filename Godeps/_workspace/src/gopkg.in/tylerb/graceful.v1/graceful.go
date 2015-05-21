@@ -151,6 +151,23 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string) error {
 	return srv.Serve(tlsListener)
 }
 
+// ListenAndServeTLSConfig can be used with an existing TLS config and is equivalent to
+// http.Server.ListenAndServeTLS with graceful shutdown enabled,
+func (srv *Server) ListenAndServeTLSConfig(config *tls.Config) error {
+	addr := srv.Addr
+	if addr == "" {
+		addr = ":https"
+	}
+
+	conn, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+
+	tlsListener := tls.NewListener(conn, config)
+	return srv.Serve(tlsListener)
+}
+
 // Serve is equivalent to http.Server.Serve with graceful shutdown enabled.
 //
 // timeout is the duration to wait until killing active requests and stopping the server.
@@ -166,21 +183,12 @@ func (srv *Server) Serve(listener net.Listener) error {
 	add := make(chan net.Conn)
 	remove := make(chan net.Conn)
 
-	var timesLock sync.Mutex
-	times := map[net.Conn]time.Time{}
-
 	srv.Server.ConnState = func(conn net.Conn, state http.ConnState) {
 		switch state {
 		case http.StateNew:
-			timesLock.Lock()
-			times[conn] = time.Now()
-			timesLock.Unlock()
 			add <- conn
 		case http.StateClosed, http.StateHijacked:
 			remove <- conn
-			timesLock.Lock()
-			delete(times, conn)
-			timesLock.Unlock()
 		}
 		if srv.ConnState != nil {
 			srv.ConnState(conn, state)
@@ -192,15 +200,14 @@ func (srv *Server) Serve(listener net.Listener) error {
 	kill := make(chan struct{})
 	go srv.manageConnections(add, remove, shutdown, kill)
 
-	if srv.interrupt == nil {
-		srv.interrupt = make(chan os.Signal, 1)
-	}
+	interrupt := srv.interruptChan()
+
 	// Set up the interrupt handler
 	if !srv.NoSignalHandling {
-		signal.Notify(srv.interrupt, syscall.SIGINT, syscall.SIGTERM)
+		signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
 	}
 
-	go srv.handleInterrupt(listener)
+	go srv.handleInterrupt(interrupt, listener)
 
 	// Serve with graceful listener.
 	// Execution blocks here until listener.Close() is called, above.
@@ -220,7 +227,8 @@ func (srv *Server) Serve(listener net.Listener) error {
 // command to stop the server.
 func (srv *Server) Stop(timeout time.Duration) {
 	srv.Timeout = timeout
-	srv.interrupt <- syscall.SIGINT
+	interrupt := srv.interruptChan()
+	interrupt <- syscall.SIGINT
 }
 
 // StopChan gets the stop channel which will block until
@@ -264,8 +272,19 @@ func (srv *Server) manageConnections(add, remove chan net.Conn, shutdown chan ch
 	}
 }
 
-func (srv *Server) handleInterrupt(listener net.Listener) {
-	<-srv.interrupt
+func (srv *Server) interruptChan() chan os.Signal {
+	srv.stopLock.Lock()
+	if srv.interrupt == nil {
+		srv.interrupt = make(chan os.Signal, 1)
+	}
+	srv.stopLock.Unlock()
+
+	return srv.interrupt
+}
+
+func (srv *Server) handleInterrupt(interrupt chan os.Signal, listener net.Listener) {
+	<-interrupt
+
 	srv.SetKeepAlivesEnabled(false)
 	_ = listener.Close() // we are shutting down anyway. ignore error.
 
@@ -273,8 +292,8 @@ func (srv *Server) handleInterrupt(listener net.Listener) {
 		srv.ShutdownInitiated()
 	}
 
-	signal.Stop(srv.interrupt)
-	close(srv.interrupt)
+	signal.Stop(interrupt)
+	close(interrupt)
 }
 
 func (srv *Server) shutdown(shutdown chan chan struct{}, kill chan struct{}) {
