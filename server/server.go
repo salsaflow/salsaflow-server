@@ -9,10 +9,12 @@ import (
 
 	// Vendor
 	"github.com/codegangsta/negroni"
-	oauth2 "github.com/goincremental/negroni-oauth2"
+	noauth2 "github.com/goincremental/negroni-oauth2"
 	sessions "github.com/goincremental/negroni-sessions"
 	"github.com/goincremental/negroni-sessions/cookiestore"
 	"github.com/gorilla/mux"
+	"golang.org/x/net/context"
+	"golang.org/x/oauth2"
 	"google.golang.org/api/plus/v1"
 	"gopkg.in/tylerb/graceful.v1"
 )
@@ -23,14 +25,14 @@ const (
 )
 
 type Server struct {
-	oauth2Config *oauth2.Config
+	oauth2Config *noauth2.Config
 	addr         string
 	timeout      time.Duration
 }
 
 type OptionFunc func(srv *Server)
 
-func New(config *oauth2.Config, options ...OptionFunc) *Server {
+func New(config *noauth2.Config, options ...OptionFunc) *Server {
 	srv := &Server{
 		oauth2Config: config,
 		addr:         DefaultAddress,
@@ -61,21 +63,21 @@ func (srv *Server) Run() {
 	router := mux.NewRouter()
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// Redirect to /login in case the user is not logged in.
-		token := oauth2.GetToken(r)
+		token := noauth2.GetToken(r)
 		if token == nil || !token.Valid() {
 			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
 			return
 		}
 
 		// Print something retarded.
-		writeUserEmail(token)
+		srv.writeUserEmail(w, token.Get())
 	})
 
 	// Restricted section.
 	secureRouter := mux.NewRouter()
 
 	secure := negroni.New()
-	secure.Use(oauth2.LoginRequired())
+	secure.Use(noauth2.LoginRequired())
 	secure.UseHandler(secureRouter)
 
 	router.Handle("/restricted", secure)
@@ -83,23 +85,22 @@ func (srv *Server) Run() {
 	// Negroni.
 	n := negroni.New(negroni.NewRecovery(), negroni.NewLogger())
 	n.Use(sessions.Sessions("SalsaFlowSession", cookiestore.New([]byte("SalsaFlow123"))))
-	n.Use(oauth2.Google(srv.oauth2Config))
+	n.Use(noauth2.Google(srv.oauth2Config))
 	n.UseHandler(router)
 
 	// Start the server using graceful.
 	graceful.Run(srv.addr, srv.timeout, n)
 }
 
-func writeUserEmail(w http.ResponseWriter, token oauth2.Token) {
-	httpClient := NewOAuth2HttpClient(token)
-	srv := plus.New(httpClient)
-
-	people, err := plus.NewPeopleService(srv)
+func (srv *Server) writeUserEmail(w http.ResponseWriter, token noauth2.Token) {
+	httpClient := ((*oauth2.Config)(srv.oauth2Config)).Client(context.Background(), token)
+	service, err := plus.New(httpClient)
 	if err != nil {
 		nuke(w, err)
 		return
 	}
 
+	people := plus.NewPeopleService(service)
 	me, err := people.Get("me").Do()
 	if err != nil {
 		nuke(w, err)
@@ -111,6 +112,6 @@ func writeUserEmail(w http.ResponseWriter, token oauth2.Token) {
 }
 
 func nuke(w http.ResponseWriter, err error) {
-	log.Log(err)
+	log.Println(err)
 	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 }
