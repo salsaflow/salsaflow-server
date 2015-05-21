@@ -24,7 +24,7 @@ func NewServer() *server.Server {
 		clientSecret = os.Getenv("OAUTH2_CLIENT_SECRET")
 	)
 
-	oauth2Config := &outh2.Config{
+	oauth2Config := &oauth2.Config{
 		ClientId:     clientId,
 		ClientSecret: clientSecret,
 		RedirectURL:  path.Join(canonicalURL, "index.html"),
