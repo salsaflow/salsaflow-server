@@ -31,7 +31,7 @@ func NewServer() *server.Server {
 	oauth2Config := &oauth2.Config{
 		ClientID:     clientId,
 		ClientSecret: clientSecret,
-		RedirectURL:  canonicalURL + "index.html",
+		RedirectURL:  canonicalURL + oauth2.PathCallback,
 		Scopes:       []string{"https://www.googleapis.com/auth/plus.login"},
 	}
 
