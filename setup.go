@@ -8,6 +8,9 @@ import (
 
 	// Internal
 	"github.com/salsaflow/salsaflow-server/server"
+
+	// Vendor
+	oauth2 "github.com/goincremental/negroni-oauth2"
 )
 
 func NewServer() *server.Server {
@@ -15,7 +18,10 @@ func NewServer() *server.Server {
 	flagTimeout := flag.Duration("timeout", server.DefaultTimeout, "server shutdown timeout")
 	flag.Parse()
 
+	oauth2Config := &oauth2.Config{}
+
 	return server.New(
+		oauth2Config,
 		server.SetAddress(*flagAddress),
 		server.SetShutdownTimeout(*flagTimeout))
 }

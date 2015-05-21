@@ -19,16 +19,18 @@ const (
 )
 
 type Server struct {
-	addr    string
-	timeout time.Duration
+	oauth2Config *oauth2.Config
+	addr         string
+	timeout      time.Duration
 }
 
 type OptionFunc func(srv *Server)
 
-func New(options ...OptionFunc) *Server {
+func New(config *oauth2.Config, options ...OptionFunc) *Server {
 	srv := &Server{
-		addr:    DefaultAddress,
-		timeout: DefaultTimeout,
+		oauth2Config: config,
+		addr:         DefaultAddress,
+		timeout:      DefaultTimeout,
 	}
 
 	for _, opt := range options {
@@ -66,12 +68,7 @@ func (srv *Server) Run() {
 	// Negroni.
 	n := negroni.Classic()
 	n.Use(sessions.Sessions("SalsaFlowSession", cookiestore.New([]byte("SalsaFlow123"))))
-	n.Use(oauth2.Google(&oauth2.Config{
-		ClientID:     "",
-		ClientSecret: "",
-		RedirectURL:  "",
-		Scopes:       []string{},
-	}))
+	n.Use(oauth2.Google(srv.oauth2Config))
 	n.UseHandler(router)
 
 	// Start the server using graceful.
