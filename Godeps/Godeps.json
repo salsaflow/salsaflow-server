@@ -47,6 +47,14 @@
 			"Rev": "f98d0160877ab4712b906626425ed8b0b320907c"
 		},
 		{
+			"ImportPath": "google.golang.org/api/googleapi",
+			"Rev": "d56f328dc27a4097cd0fc535e7c77807f48a2e84"
+		},
+		{
+			"ImportPath": "google.golang.org/api/plus/v1",
+			"Rev": "d56f328dc27a4097cd0fc535e7c77807f48a2e84"
+		},
+		{
 			"ImportPath": "gopkg.in/tylerb/graceful.v1",
 			"Comment": "v1.1",
 			"Rev": "ff79a7f00848198d26054b472aafb1043c4b3507"
