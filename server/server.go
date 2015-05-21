@@ -110,8 +110,10 @@ func (srv *Server) writeUserEmail(w http.ResponseWriter, token noauth2.Token) {
 		return
 	}
 
-	fmt.Printf("%+v\n", me)
-	fmt.Fprintf(w, "%+v\n", me)
+	fmt.Fprintln(w, me.DisplayName)
+	for _, email := range me.Emails {
+		fmt.Fprintln(w, email)
+	}
 }
 
 func nuke(w http.ResponseWriter, err error) {
