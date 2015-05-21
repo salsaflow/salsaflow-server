@@ -79,7 +79,7 @@ func (srv *Server) Run() {
 	router.Handle("/restricted", secure)
 
 	// Negroni.
-	n := negroni.Classic()
+	n := negroni.New(negroni.NewRecovery(), negroni.NewLogger())
 	n.Use(sessions.Sessions("SalsaFlowSession", cookiestore.New([]byte("SalsaFlow123"))))
 	n.Use(oauth2.Google(srv.oauth2Config))
 	n.UseHandler(router)
