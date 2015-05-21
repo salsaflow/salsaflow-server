@@ -18,7 +18,12 @@ func NewServer() *server.Server {
 	flagTimeout := flag.Duration("timeout", server.DefaultTimeout, "server shutdown timeout")
 	flag.Parse()
 
-	oauth2Config := &oauth2.Config{}
+	oauth2Config := &oauth2.Config{
+		ClientID:     "someID",
+		ClientSecret: "someSecret",
+		RedirectURL:  "http://localhost:3000",
+		Scopes:       []string{"email"},
+	}
 
 	return server.New(
 		oauth2Config,
