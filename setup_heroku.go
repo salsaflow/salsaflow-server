@@ -32,7 +32,7 @@ func NewServer() *server.Server {
 		ClientID:     clientId,
 		ClientSecret: clientSecret,
 		RedirectURL:  canonicalURL + "oauth2callback",
-		Scopes:       []string{"https://www.googleapis.com/auth/plus.login"},
+		Scopes:       []string{"email"},
 	}
 
 	return server.New(oauth2Config, server.SetAddress(addr))
