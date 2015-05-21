@@ -58,6 +58,14 @@ func (srv *Server) Run() {
 	// Top-level router.
 	router := mux.NewRouter()
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Redirect to /login in case the user is not logged in.
+		token := oauth2.GetToken(r)
+		if token == nil || !token.Valid() {
+			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+			return
+		}
+
+		// Print something retarded.
 		io.WriteString(w, "OK")
 	})
 
