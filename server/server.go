@@ -93,7 +93,10 @@ func (srv *Server) Run() {
 }
 
 func (srv *Server) writeUserEmail(w http.ResponseWriter, token noauth2.Token) {
-	httpClient := ((*oauth2.Config)(srv.oauth2Config)).Client(context.Background(), token)
+	config := (*oauth2.Config)(srv.oauth2Config)
+	tok := (*oauth2.Token)(&token)
+	httpClient := config.Client(context.Background(), tok)
+
 	service, err := plus.New(httpClient)
 	if err != nil {
 		nuke(w, err)
