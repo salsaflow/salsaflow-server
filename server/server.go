@@ -2,7 +2,8 @@ package server
 
 import (
 	// Stdlib
-	"io"
+	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	sessions "github.com/goincremental/negroni-sessions"
 	"github.com/goincremental/negroni-sessions/cookiestore"
 	"github.com/gorilla/mux"
+	"google.golang.org/api/plus/v1"
 	"gopkg.in/tylerb/graceful.v1"
 )
 
@@ -66,7 +68,7 @@ func (srv *Server) Run() {
 		}
 
 		// Print something retarded.
-		io.WriteString(w, "OK")
+		writeUserEmail(token)
 	})
 
 	// Restricted section.
@@ -86,4 +88,29 @@ func (srv *Server) Run() {
 
 	// Start the server using graceful.
 	graceful.Run(srv.addr, srv.timeout, n)
+}
+
+func writeUserEmail(w http.ResponseWriter, token oauth2.Token) {
+	httpClient := NewOAuth2HttpClient(token)
+	srv := plus.New(httpClient)
+
+	people, err := plus.NewPeopleService(srv)
+	if err != nil {
+		nuke(w, err)
+		return
+	}
+
+	me, err := people.Get("me").Do()
+	if err != nil {
+		nuke(w, err)
+		return
+	}
+
+	fmt.Printf("%+v\n", me)
+	fmt.Fprintf(w, "%+v\n", me)
+}
+
+func nuke(w http.ResponseWriter, err error) {
+	log.Log(err)
+	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 }
