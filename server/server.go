@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	DefaultAddress = ":3000"
+	DefaultAddress = "localhost:3000"
 	DefaultTimeout = 3 * time.Second
 )
 
