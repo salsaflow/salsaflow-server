@@ -5,7 +5,7 @@ package main
 import (
 	// Stdlib
 	"os"
-	"path"
+	"strings"
 
 	// Internal
 	"github.com/salsaflow/salsaflow-server/server"
@@ -24,10 +24,14 @@ func NewServer() *server.Server {
 		clientSecret = os.Getenv("OAUTH2_CLIENT_SECRET")
 	)
 
+	if !strings.HasSuffix(canonicalURL, "/") {
+		canonicalURL += "/"
+	}
+
 	oauth2Config := &oauth2.Config{
 		ClientID:     clientId,
 		ClientSecret: clientSecret,
-		RedirectURL:  path.Join(canonicalURL, "index.html"),
+		RedirectURL:  canonicalURL + "index.html",
 		Scopes:       []string{"https://www.googleapis.com/auth/plus.login"},
 	}
 
