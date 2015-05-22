@@ -2,10 +2,11 @@ package server
 
 import (
 	// Stdlib
-	"fmt"
+	"html/template"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"path"
 	"time"
 
@@ -122,21 +123,24 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Print the profile.
-	fmt.Fprintf(w, `
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>SalsaFlow</title>
-	</head>
-	<body>
-		<table>
-			<tr><td>%v</td></tr>
-			<tr><td>%v</td></tr>
-			<tr><td><a href="%v">Logout</td></tr>
-		</table>
-	</body>
-</html>`, profile.Name, profile.Email, srv.relativePath("/auth/google/logout")+"?next=/")
+	// Read the template.
+	t, err := template.ParseFiles("templates/homePage.html")
+	if err != nil {
+		httpError(w, r, err)
+		return
+	}
+
+	// Write the template to the response.
+	ctx := struct {
+		Name      string
+		Email     string
+		LogoutURL string
+	}{
+		profile.Name,
+		profile.Email,
+		srv.relativePath("/auth/google/logout?next=") + url.QueryEscape("/"),
+	}
+	t.Execute(w, ctx)
 }
 
 func (srv *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
