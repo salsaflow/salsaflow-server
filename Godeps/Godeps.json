@@ -35,6 +35,11 @@
 			"Rev": "f61c3ec2cf65d69e7efedfd4d060fe128882c951"
 		},
 		{
+			"ImportPath": "github.com/joho/godotenv",
+			"Comment": "v1-6-gf658182",
+			"Rev": "f6581828bb37238bc1ce8e561d9e4050630a304d"
+		},
+		{
 			"ImportPath": "golang.org/x/net/context",
 			"Rev": "7212a0803472eb1ec2686896a7c626528172a7a6"
 		},
