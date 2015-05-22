@@ -22,8 +22,9 @@ import (
 )
 
 const (
-	DefaultAddress = "localhost:3000"
-	DefaultTimeout = 3 * time.Second
+	DefaultAddress      = "localhost:3000"
+	DefaultCookieSecret = "OneRingToRuleThemAll"
+	DefaultTimeout      = 3 * time.Second
 )
 
 type Server struct {
@@ -31,6 +32,7 @@ type Server struct {
 	pathPrefix     string
 	oauth2Config   *noauth2.Config
 	addr           string
+	cookieSecret   string
 	rootDir        string
 	timeout        time.Duration
 }
@@ -41,6 +43,7 @@ func New(config *noauth2.Config, options ...OptionFunc) *Server {
 	srv := &Server{
 		oauth2Config: config,
 		addr:         DefaultAddress,
+		cookieSecret: DefaultCookieSecret,
 		timeout:      DefaultTimeout,
 	}
 
@@ -66,6 +69,12 @@ func SetAddress(addr string) OptionFunc {
 func SetRootDirectory(rootDir string) OptionFunc {
 	return func(srv *Server) {
 		srv.rootDir = rootDir
+	}
+}
+
+func SetCookieSecret(secret string) OptionFunc {
+	return func(srv *Server) {
+		srv.cookieSecret = secret
 	}
 }
 

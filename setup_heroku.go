@@ -34,6 +34,7 @@ func LoadServerFromEnvironment() (srv *server.Server, err error) {
 
 	var (
 		addr         = ":" + mustGetenv("PORT")
+		cookieSecret = mustGetenv("SF_COOKIE_SECRET")
 		clientId     = mustGetenv("SF_OAUTH2_CLIENT_ID")
 		clientSecret = mustGetenv("SF_OAUTH2_CLIENT_SECRET")
 		redirectURL  = mustGetenv("SF_OAUTH2_REDIRECT_URL")
@@ -46,5 +47,8 @@ func LoadServerFromEnvironment() (srv *server.Server, err error) {
 		Scopes:       []string{"email"},
 	}
 
-	return server.New(oauth2Config, server.EnableProductionMode(), server.SetAddress(addr)), nil
+	return server.New(oauth2Config,
+		server.EnableProductionMode(),
+		server.SetAddress(addr),
+		server.SetCookieSecret(cookieSecret)), nil
 }
