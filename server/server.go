@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"path/filepath"
 	"time"
 
 	// Vendor
@@ -28,6 +29,7 @@ type Server struct {
 	pathPrefix   string
 	oauth2Config *noauth2.Config
 	addr         string
+	rootDir      string
 	timeout      time.Duration
 }
 
@@ -50,6 +52,12 @@ func New(config *noauth2.Config, options ...OptionFunc) *Server {
 func SetAddress(addr string) OptionFunc {
 	return func(srv *Server) {
 		srv.addr = addr
+	}
+}
+
+func SetRootDirectory(rootDir string) OptionFunc {
+	return func(srv *Server) {
+		srv.rootDir = rootDir
 	}
 }
 
@@ -126,7 +134,7 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Read the template.
-	t, err := template.ParseFiles("templates/homePage.html")
+	t, err := srv.loadTemplate("homePage.html")
 	if err != nil {
 		httpError(w, r, err)
 		return
@@ -147,7 +155,7 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 
 func (srv *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	// Read the template.
-	t, err := template.ParseFiles("templates/login.html")
+	t, err := srv.loadTemplate("login.html")
 	if err != nil {
 		httpError(w, r, err)
 		return
@@ -164,6 +172,10 @@ func (srv *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 func (srv *Server) relativePath(pth string) string {
 	return path.Join(srv.pathPrefix, pth)
+}
+
+func (srv *Server) loadTemplate(fileName string) (*template.Template, error) {
+	return template.ParseFiles(filepath.Join(srv.rootDir, "templates", fileName))
 }
 
 func httpError(w http.ResponseWriter, r *http.Request, err error) {
