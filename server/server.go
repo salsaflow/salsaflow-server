@@ -3,7 +3,6 @@ package server
 import (
 	// Stdlib
 	"html/template"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -130,7 +129,7 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write the template to the response.
+	// Render the template and write it into the response.
 	ctx := struct {
 		Name      string
 		Email     string
@@ -144,17 +143,20 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, `
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>Login</title>
-	</head>
-	<body>
-		<a href="/auth/google/login">Google</a>
-	</body>
-</html>
-	`)
+	// Read the template.
+	t, err := template.ParseFiles("templates/login.html")
+	if err != nil {
+		httpError(w, r, err)
+		return
+	}
+
+	// Render the template and write it into the response.
+	ctx := struct {
+		LoginURL string
+	}{
+		srv.relativePath("/auth/google/login"),
+	}
+	t.Execute(w, ctx)
 }
 
 func (srv *Server) relativePath(pth string) string {
