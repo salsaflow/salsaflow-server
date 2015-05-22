@@ -105,7 +105,7 @@ func (srv *Server) Run() {
 		IsDevelopment:   !srv.productionMode,
 	}).HandlerFuncWithNext)
 
-	n.Use(sessions.Sessions("SalsaFlowSession", cookiestore.New([]byte("SalsaFlow123"))))
+	n.Use(sessions.Sessions("SalsaFlowSession", cookiestore.New([]byte(srv.cookieSecret))))
 	n.Use(noauth2.Google(srv.oauth2Config))
 	n.UseHandler(router)
 
