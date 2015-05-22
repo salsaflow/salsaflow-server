@@ -15,9 +15,7 @@ import (
 	sessions "github.com/goincremental/negroni-sessions"
 	"github.com/goincremental/negroni-sessions/cookiestore"
 	"github.com/gorilla/mux"
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
-	"google.golang.org/api/plus/v1"
 	"gopkg.in/tylerb/graceful.v1"
 )
 
@@ -103,9 +101,41 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 
 	// Get the user profile from the session.
 	s := sessions.GetSession(r)
+	profile, err := unmarshalProfile(s)
+	if err != nil {
+		httpError(w, r, err)
+		return
+	}
+	if profile == nil {
+		var (
+			cfg = (*oauth2.Config)(srv.oauth2Config)
+			tok = (*oauth2.Token)(&token)
+		)
+		profile, err = fetchProfile(cfg, tok)
+		if err != nil {
+			httpError(w, r, err)
+			return
+		}
+		if err := marshalProfile(s, profile); err != nil {
+			httpError(w, r, err)
+			return
+		}
+	}
 
-	// Print something retarded.
-	srv.writeUserEmail(w, token.Get())
+	// Print the profile.
+	fmt.Fprintf(w, `
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>SalsaFlow</title>
+	</head>
+	<body>
+		<table>
+			<tr><td>%v</td></tr>
+			<tr><td>%v</td></tr>
+		</table>
+	</body>
+</html>`, profile.Name, profile.Email)
 }
 
 func (srv *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -122,11 +152,11 @@ func (srv *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	`)
 }
 
-func (srv *Server) relativePath(pth string) {
+func (srv *Server) relativePath(pth string) string {
 	return path.Join(srv.pathPrefix, pth)
 }
 
-func nuke(w http.ResponseWriter, err error) {
-	log.Println(err)
-	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+func httpError(w http.ResponseWriter, r *http.Request, err error) {
+	log.Printf("[ERROR] %v %v -> %v\n", r.Method, r.URL.Path, err)
+	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
