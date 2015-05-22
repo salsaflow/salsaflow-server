@@ -10,4 +10,5 @@ deps.fetch:
 	go get -d -u github.com/goincremental/negroni-sessions
 	go get -d -u github.com/gorilla/mux
 	go get -d -u github.com/joho/godotenv
+	go get -d -u github.com/unrolled/secure
 	go get -d -u gopkg.in/tylerb/graceful.v1

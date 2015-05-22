@@ -16,6 +16,7 @@ import (
 	sessions "github.com/goincremental/negroni-sessions"
 	"github.com/goincremental/negroni-sessions/cookiestore"
 	"github.com/gorilla/mux"
+	"github.com/unrolled/secure"
 	"golang.org/x/oauth2"
 	"gopkg.in/tylerb/graceful.v1"
 )
@@ -26,6 +27,7 @@ const (
 )
 
 type Server struct {
+	redirectSSL  bool
 	pathPrefix   string
 	oauth2Config *noauth2.Config
 	addr         string
@@ -47,6 +49,12 @@ func New(config *noauth2.Config, options ...OptionFunc) *Server {
 	}
 
 	return srv
+}
+
+func RedirectSSL(redirect bool) OptionFunc {
+	return func(srv *Server) {
+		srv.redirectSSL = redirect
+	}
 }
 
 func SetAddress(addr string) OptionFunc {
@@ -79,17 +87,16 @@ func (srv *Server) Run() {
 	router.HandleFunc("/", srv.handleRootPath)
 	router.HandleFunc("/login", srv.handleLogin)
 
-	// Restricted section.
-	secureRouter := mux.NewRouter()
-
-	secure := negroni.New()
-	secure.Use(noauth2.LoginRequired())
-	secure.UseHandler(secureRouter)
-
-	router.Handle("/", secure)
-
 	// Negroni.
 	n := negroni.New(negroni.NewRecovery(), negroni.NewLogger())
+
+	// Redirect to SSL in production.
+	if srv.redirectSSL {
+		n.UseFunc(secure.New(secure.Options{
+			SSLRedirect: true,
+		}).HandlerFuncWithNext)
+	}
+
 	n.Use(sessions.Sessions("SalsaFlowSession", cookiestore.New([]byte("SalsaFlow123"))))
 	n.Use(noauth2.Google(srv.oauth2Config))
 	n.UseHandler(router)
