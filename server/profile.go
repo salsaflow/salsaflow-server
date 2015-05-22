@@ -1,8 +1,22 @@
 package server
 
 type userProfile struct {
-	Name  string
-	Email string
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+func unmarshalProfile(s sessions.Session) (*userProfile, error) {
+	v := s.Get(keyUserProfile)
+	if v == nil {
+		return nil
+	}
+
+	data := v.([]byte)
+	var profile userProfile
+	if err := json.Unmarshal(data, &profile); err != nil {
+		return nil, err
+	}
+	return &profile, nil
 }
 
 func getUserProfile(config *oauth2.Config, token *oauth2.Token) (*userProfile, error) {
