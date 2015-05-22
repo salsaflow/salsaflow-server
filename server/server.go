@@ -27,12 +27,12 @@ const (
 )
 
 type Server struct {
-	redirectSSL  bool
-	pathPrefix   string
-	oauth2Config *noauth2.Config
-	addr         string
-	rootDir      string
-	timeout      time.Duration
+	productionMode bool
+	pathPrefix     string
+	oauth2Config   *noauth2.Config
+	addr           string
+	rootDir        string
+	timeout        time.Duration
 }
 
 type OptionFunc func(srv *Server)
@@ -51,9 +51,9 @@ func New(config *noauth2.Config, options ...OptionFunc) *Server {
 	return srv
 }
 
-func RedirectSSL(redirect bool) OptionFunc {
+func EnableProductionMode() OptionFunc {
 	return func(srv *Server) {
-		srv.redirectSSL = redirect
+		srv.productionMode = true
 	}
 }
 
@@ -90,12 +90,10 @@ func (srv *Server) Run() {
 	// Negroni.
 	n := negroni.New(negroni.NewRecovery(), negroni.NewLogger())
 
-	// Redirect to SSL in production.
-	if srv.redirectSSL {
-		n.UseFunc(secure.New(secure.Options{
-			SSLRedirect: true,
-		}).HandlerFuncWithNext)
-	}
+	n.UseFunc(secure.New(secure.Options{
+		IsDevelopment: !srv.productionMode,
+		SSLRedirect:   true,
+	}).HandlerFuncWithNext)
 
 	n.Use(sessions.Sessions("SalsaFlowSession", cookiestore.New([]byte("SalsaFlow123"))))
 	n.Use(noauth2.Google(srv.oauth2Config))

@@ -46,5 +46,5 @@ func LoadServerFromEnvironment() (srv *server.Server, err error) {
 		Scopes:       []string{"email"},
 	}
 
-	return server.New(oauth2Config, server.RedirectSSL(true), server.SetAddress(addr)), nil
+	return server.New(oauth2Config, server.EnableProductionMode(), server.SetAddress(addr)), nil
 }
