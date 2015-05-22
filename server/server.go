@@ -3,6 +3,7 @@ package server
 import (
 	// Stdlib
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -59,8 +60,29 @@ func SetShutdownTimeout(timeout time.Duration) OptionFunc {
 }
 
 func (srv *Server) Run() {
+	// Set global negroni-oauth2 paths. Ugly as hell.
+	noauth2.PathLogin = "/auth/google/login"
+	noauth2.PathLogout = "/auth/google/logout"
+	noauth2.PathCallback = "/auth/google/callback"
+	noauth2.PathError = "/auth/google/error"
+
 	// Top-level router.
 	router := mux.NewRouter()
+
+	router.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, `
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Login</title>
+	</head>
+	<body>
+		<a href="/auth/google/login">Google</a>
+	</body>
+</html>
+		`)
+	})
+
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// Redirect to /login in case the user is not logged in.
 		token := noauth2.GetToken(r)
@@ -111,11 +133,22 @@ func (srv *Server) writeUserEmail(w http.ResponseWriter, token noauth2.Token) {
 		return
 	}
 
+	fmt.Fprintln(w, `
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>SalsaFlow</title>
+	</head>
+	<body>
+	`)
 	fmt.Fprintln(w, me.DisplayName)
 	fmt.Fprintln(w, me.Domain)
 	for _, email := range me.Emails {
 		fmt.Fprintln(w, email.Value)
 	}
+
+	fmt.Fprintln(w, `<a href="/auth/google/logout">Logout</a>`)
+	fmt.Fprintln(w, "</body></html>")
 }
 
 func nuke(w http.ResponseWriter, err error) {
