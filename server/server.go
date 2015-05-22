@@ -147,7 +147,7 @@ func (srv *Server) writeUserEmail(w http.ResponseWriter, token noauth2.Token) {
 		fmt.Fprintln(w, email.Value)
 	}
 
-	fmt.Fprintln(w, `<a href="/auth/google/logout">Logout</a>`)
+	fmt.Fprintln(w, `<a href="/auth/google/logout?next=/login">Logout</a>`)
 	fmt.Fprintln(w, "</body></html>")
 }
 
