@@ -65,7 +65,7 @@ func (srv *Server) Run() {
 		// Redirect to /login in case the user is not logged in.
 		token := noauth2.GetToken(r)
 		if token == nil || !token.Valid() {
-			log.Printf("Not a valid token, redirecting ... token=%v\n", token)
+			noauth2.SetToken(r, nil)
 			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
 			return
 		}
