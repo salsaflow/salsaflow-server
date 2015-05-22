@@ -91,8 +91,9 @@ func (srv *Server) Run() {
 	n := negroni.New(negroni.NewRecovery(), negroni.NewLogger())
 
 	n.UseFunc(secure.New(secure.Options{
-		IsDevelopment: !srv.productionMode,
-		SSLRedirect:   true,
+		SSLRedirect:     true,
+		SSLProxyHeaders: map[string]string{"X-Forwarded-Proto": "https"},
+		IsDevelopment:   !srv.productionMode,
 	}).HandlerFuncWithNext)
 
 	n.Use(sessions.Sessions("SalsaFlowSession", cookiestore.New([]byte("SalsaFlow123"))))
