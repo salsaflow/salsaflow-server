@@ -92,15 +92,18 @@ func (srv *Server) Run() {
 
 func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 	// Redirect to /login in case the user is not logged in.
-	token := noauth2.GetToken(r)
+	var (
+		s     = sessions.GetSession(r)
+		token = noauth2.GetToken(r)
+	)
 	if token == nil || !token.Valid() {
+		deleteProfile(s)
 		noauth2.SetToken(r, nil)
 		http.Redirect(w, r, srv.relativePath("/login"), http.StatusTemporaryRedirect)
 		return
 	}
 
 	// Get the user profile from the session.
-	s := sessions.GetSession(r)
 	profile, err := unmarshalProfile(s)
 	if err != nil {
 		httpError(w, r, err)

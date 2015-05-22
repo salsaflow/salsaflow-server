@@ -46,6 +46,10 @@ func marshalProfile(s sessions.Session, profile *userProfile) error {
 	return nil
 }
 
+func deleteProfile(s sessions.Session) {
+	s.Delete(keyUserProfile)
+}
+
 func fetchProfile(config *oauth2.Config, token *oauth2.Token) (*userProfile, error) {
 	// Get the HTTP client to use for the request.
 	httpClient := config.Client(context.Background(), token)
