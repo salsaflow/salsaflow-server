@@ -109,9 +109,9 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 	if profile == nil {
 		var (
 			cfg = (*oauth2.Config)(srv.oauth2Config)
-			tok = (*oauth2.Token)(&token)
+			tok = (oauth2.Token)(token.Get())
 		)
-		profile, err = fetchProfile(cfg, tok)
+		profile, err = fetchProfile(cfg, &tok)
 		if err != nil {
 			httpError(w, r, err)
 			return
