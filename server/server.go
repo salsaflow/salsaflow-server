@@ -133,9 +133,10 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 		<table>
 			<tr><td>%v</td></tr>
 			<tr><td>%v</td></tr>
+			<tr><td><a href="%v">Logout</td></tr>
 		</table>
 	</body>
-</html>`, profile.Name, profile.Email)
+</html>`, profile.Name, profile.Email, srv.relativePath("/auth/google/logout")+"?next=/")
 }
 
 func (srv *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
