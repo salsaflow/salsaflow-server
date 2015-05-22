@@ -4,9 +4,7 @@ package main
 
 import (
 	// Stdlib
-	"fmt"
 	"os"
-	"strings"
 
 	// Internal
 	"github.com/salsaflow/salsaflow-server/server"
@@ -15,27 +13,36 @@ import (
 	oauth2 "github.com/goincremental/negroni-oauth2"
 )
 
-func NewServer() (*server.Server, error) {
-	var (
-		addr = ":" + os.Getenv("PORT")
-
-		canonicalHostname = os.Getenv("CANONICAL_HOSTNAME")
-
-		clientId     = os.Getenv("OAUTH2_CLIENT_ID")
-		clientSecret = os.Getenv("OAUTH2_CLIENT_SECRET")
-	)
-
-	canonicalURL, err := url.Parse(canonicalHostname)
-	if err != nil {
-		return nil, err
+func LoadServerFromEnvironment() (srv *server.Server, err error) {
+	mustGetenv := func(key string) (value string) {
+		value = os.Getenv(key)
+		if value == "" {
+			panic(&ErrVariableNotSet{key})
+		}
+		return
 	}
-	canonicalURL.Scheme = "https"
-	canonicalURL.Path = path.Join(u.Path, "oauth2callback")
+
+	defer func() {
+		if r := recover(); r != nil {
+			if ex, ok := r.(*ErrVariableNotSet); ok {
+				err = ex
+			} else {
+				panic(r)
+			}
+		}
+	}()
+
+	var (
+		addr         = ":" + mustGetenv("PORT")
+		clientId     = mustGetenv("SF_OAUTH2_CLIENT_ID")
+		clientSecret = mustGetenv("SF_OAUTH2_CLIENT_SECRET")
+		redirectURL  = mustGetenv("SF_OAUTH2_REDIRECT_URL")
+	)
 
 	oauth2Config := &oauth2.Config{
 		ClientID:     clientId,
 		ClientSecret: clientSecret,
-		RedirectURL:  canonicalURL.String(),
+		RedirectURL:  redirectURL,
 		Scopes:       []string{"email"},
 	}
 

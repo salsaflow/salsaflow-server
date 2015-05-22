@@ -4,7 +4,7 @@ package main
 
 import (
 	// Stdlib
-	"flag"
+	"os"
 
 	// Internal
 	"github.com/salsaflow/salsaflow-server/server"
@@ -13,20 +13,38 @@ import (
 	oauth2 "github.com/goincremental/negroni-oauth2"
 )
 
-func NewServer() *server.Server {
-	flagAddress := flag.String("addr", server.DefaultAddress, "network address to listen on")
-	flagTimeout := flag.Duration("timeout", server.DefaultTimeout, "server shutdown timeout")
-	flag.Parse()
+func LoadServerFromEnvironment() (srv *server.Server, err error) {
+	mustGetenv := func(key string) (value string) {
+		value = os.Getenv(key)
+		if value == "" {
+			panic(ErrVariableNotSet{key})
+		}
+		return
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			if ex, ok := r.(*ErrVariableNotSet); ok {
+				err = ex
+			} else {
+				panic(r)
+			}
+		}
+	}()
+
+	var (
+		addr         = mustGetenv("SF_LISTEN_ADDRESS")
+		clientId     = mustGetenv("SF_OAUTH2_CLIENT_ID")
+		clientSecret = mustGetenv("SF_OAUTH2_CLIENT_SECRET")
+		redirectURL  = mustGetenv("SF_OAUTH2_REDIRECT_URL")
+	)
 
 	oauth2Config := &oauth2.Config{
-		ClientID:     "someID",
-		ClientSecret: "someSecret",
-		RedirectURL:  "http://localhost:3000",
+		ClientID:     clientId,
+		ClientSecret: clientSecret,
+		RedirectURL:  redirectURL,
 		Scopes:       []string{"email"},
 	}
 
-	return server.New(
-		oauth2Config,
-		server.SetAddress(*flagAddress),
-		server.SetShutdownTimeout(*flagTimeout))
+	return server.New(oauth2Config, server.SetAddress(addr)), nil
 }
