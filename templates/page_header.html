@@ -25,6 +25,14 @@
         <div class="navbar-header">
           <a class="navbar-brand" href="{{.PathPrefix}}/">SalsaFlow Admin</a>
         </div>
+        {{if .UserName}}
+        <div class="navbar-collapse collapse">
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="#"><button class="btn btn-link">{{.UserName}}</button></a></li>
+            <li><a href="{{.LogoutURL}}"><button class="btn btn-default">Log Out</button></a></li>
+          </ul>
+        </div>
+        {{end}}
       </div>
     </nav>
 

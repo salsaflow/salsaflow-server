@@ -160,8 +160,8 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 	ctx := struct {
 		PathPrefix string
 		Title      string
-		Name       string
-		Email      string
+		UserName   string
+		UserEmail  string
 		LogoutURL  string
 	}{
 		"",
