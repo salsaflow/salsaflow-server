@@ -11,6 +11,22 @@
     <script src="{{.PathPrefix}}/assets/bootstrap-3.3.4-dist/js/bootstrap.js"></script>
     <link rel="stylesheet" type="text/css" href="{{.PathPrefix}}/assets/bootstrap-3.3.4-dist/css/bootstrap.css">
     <link rel="stylesheet" type="text/css" href="{{.PathPrefix}}/assets/bootstrap-3.3.4-dist/css/bootstrap-theme.css">
-  
+
   </head>
+  <body>
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-default navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="{{.PathPrefix}}/">SalsaFlow Admin</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="{{.PathPrefix}}">Home</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container">
 {{end}}
