@@ -149,7 +149,7 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Read the template.
-	t, err := srv.loadTemplate("homePage.html")
+	t, err := srv.loadTemplates("homePage.html", "page_header.html", "page_footer.html")
 	if err != nil {
 		httpError(w, r, err)
 		return
@@ -157,10 +157,12 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 
 	// Render the template and write it into the response.
 	ctx := struct {
+		Title     string
 		Name      string
 		Email     string
 		LogoutURL string
 	}{
+		"Home",
 		profile.Name,
 		profile.Email,
 		srv.relativePath("/auth/google/logout?next=") + url.QueryEscape("/"),
@@ -170,7 +172,7 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 
 func (srv *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	// Read the template.
-	t, err := srv.loadTemplate("login.html")
+	t, err := srv.loadTemplates("login.html", "page_header.html", "page_footer.html")
 	if err != nil {
 		httpError(w, r, err)
 		return
@@ -189,8 +191,12 @@ func (srv *Server) relativePath(pth string) string {
 	return path.Join(srv.pathPrefix, pth)
 }
 
-func (srv *Server) loadTemplate(fileName string) (*template.Template, error) {
-	return template.ParseFiles(filepath.Join(srv.rootDir, "templates", fileName))
+func (srv *Server) loadTemplates(fileNames ...string) (*template.Template, error) {
+	paths := make([]string, 0, len(fileNames))
+	for _, fileName := range fileNames {
+		paths = append(paths, filepath.Join(srv.rootDir, "templates", fileName))
+	}
+	return template.ParseFiles(paths...)
 }
 
 func httpError(w http.ResponseWriter, r *http.Request, err error) {

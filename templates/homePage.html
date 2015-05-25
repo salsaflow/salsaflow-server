@@ -1,9 +1,5 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <head>
-      <title>SalsaFlow</title>
-    </head>
+{{template "header" .}}
+
     <body>
       <table>
         <tr><td>{{.Name}}</td></tr>
@@ -11,4 +7,5 @@
         <tr><td><a href="{{.LogoutURL}}">Logout</a></td></tr>
       </table>
 	  </body>
-</html>
+
+{{template "footer" .}}
