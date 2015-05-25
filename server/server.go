@@ -95,6 +95,7 @@ func (srv *Server) Run() {
 	router := mux.NewRouter()
 	router.HandleFunc("/", srv.handleRootPath)
 	router.HandleFunc("/login", srv.handleLogin)
+	router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir(filepath.Join(srv.rootDir, "assets")))))
 
 	// Negroni.
 	n := negroni.New(negroni.NewRecovery(), negroni.NewLogger())
