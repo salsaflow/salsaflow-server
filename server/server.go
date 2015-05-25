@@ -158,11 +158,13 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 
 	// Render the template and write it into the response.
 	ctx := struct {
-		Title     string
-		Name      string
-		Email     string
-		LogoutURL string
+		PathPrefix string
+		Title      string
+		Name       string
+		Email      string
+		LogoutURL  string
 	}{
+		"",
 		"Home",
 		profile.Name,
 		profile.Email,
@@ -181,8 +183,12 @@ func (srv *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	// Render the template and write it into the response.
 	ctx := struct {
-		LoginURL string
+		PathPrefix string
+		Title      string
+		LoginURL   string
 	}{
+		"",
+		"Login",
 		srv.relativePath("/auth/google/login"),
 	}
 	t.Execute(w, ctx)
