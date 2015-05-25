@@ -1,12 +1,9 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <head>
-      <title>SalsaFlow - Login</title>
-    </head>
-    <body>
-      <table>
-        <tr><td><a href="{{.LoginURL}}">Login with Google</a></td></tr>
-      </table>
-	  </body>
-</html>
+{{template "header" .}}
+<div class="jumbotron" style="text-align: center">
+  <h1>Welcome to SalsaFlow Admin!</h1>
+  <p class="lead">SalsaFlow Admin is a web interface for managing SalsaFlow configurations.</p>
+  <p class=>
+    <a href="{{.LoginURL}}"><img src="{{.PathPrefix}}/assets/img/gplus-signin.png" /></a>
+  </p>
+</div>
+{{template "footer" .}}
