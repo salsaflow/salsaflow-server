@@ -12,6 +12,9 @@ import (
 	"path/filepath"
 	"time"
 
+	// Internal
+	"github.com/salsaflow/salsaflow-server/server/common"
+
 	// Vendor
 	"github.com/codegangsta/negroni"
 	noauth2 "github.com/goincremental/negroni-oauth2"
@@ -32,7 +35,7 @@ const (
 type Server struct {
 	productionMode bool
 	pathPrefix     string
-	ds             DataStore
+	store          DataStore
 	oauth2Config   *noauth2.Config
 	addr           string
 	cookieSecret   string
@@ -42,9 +45,9 @@ type Server struct {
 
 type OptionFunc func(srv *Server)
 
-func New(ds DataStore, config *noauth2.Config, options ...OptionFunc) *Server {
+func New(store DataStore, config *noauth2.Config, options ...OptionFunc) *Server {
 	srv := &Server{
-		ds:           ds,
+		store:        store,
 		oauth2Config: config,
 		addr:         DefaultAddress,
 		cookieSecret: DefaultCookieSecret,
@@ -209,7 +212,7 @@ func (srv *Server) api() http.Handler {
 	return n
 }
 
-func (srv *Server) getProfile(r *http.Request) (*userProfile, error) {
+func (srv *Server) getProfile(r *http.Request) (*common.User, error) {
 	// Get session for the given HTTP request.
 	session := sessions.GetSession(r)
 
@@ -234,8 +237,15 @@ func (srv *Server) getProfile(r *http.Request) (*userProfile, error) {
 		}
 	}
 
-	// Return the user profile.
-	return profile, nil
+	// Fetch the user record from the store.
+	user, err := store.FindUserByEmail(profile.Email)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return srv.createUser(profile)
+	}
+	return user, nil
 }
 
 func (srv *Server) loginRequired(next http.Handler) http.HandlerFunc {
@@ -266,7 +276,7 @@ func (srv *Server) loginOrTokenRequired(next http.Handler) http.HandlerFunc {
 		// Try the access token.
 		accessToken := r.Headers().Get("X-SalsaFlow-Token")
 		if accessToken != "" {
-			user, err := srv.store.FindUserByToken()
+			user, err := srv.store.FindUserByToken(accessToken)
 			if err != nil {
 				httpError(rw, r, err)
 				return
@@ -281,6 +291,22 @@ func (srv *Server) loginOrTokenRequired(next http.Handler) http.HandlerFunc {
 		http.Error(rw, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		return
 	}
+}
+
+func (srv *Server) createUser(profile *userProfile) (*common.User, error) {
+	user := &common.User{
+		Name:  profile.Name,
+		Email: profile.Email,
+	}
+	token, err := generateAccessToken()
+	if err != nil {
+		return nil, err
+	}
+	user.Token = token
+	if err := srv.store.SaveUser(user); err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 func (srv *Server) relativePath(pth string) string {

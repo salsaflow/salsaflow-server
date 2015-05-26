@@ -1,8 +1,16 @@
 package server
 
 import (
+	// Stdlib
 	"crypto/rand"
 	"encoding/hex"
+	"net/http"
+
+	// Internal
+	"github.com/salsaflow/salsaflow-server/server/common"
+
+	// Vendor
+	"github.com/gorilla/mux"
 )
 
 const TokenByteLen = 16
@@ -14,23 +22,32 @@ type API struct {
 }
 
 // HandleGenerateToken handles /users/{userId}/generateToken
-func (api *API) HandleGenerateToken(w http.ResponseWriter, r *http.Request) {
+func (api *API) HandleGenerateToken(rw http.ResponseWriter, r *http.Request) {
 	// Get user ID.
 	userId := mux.Vars(r)["userId"]
 
-	// Generate new token.
-	token := make([]byte, TokenByteLen)
-	if _, err := rand.Read(token); err != nil {
-		httpError(w, r, err)
+	// Fetch user record for the given ID.
+	user, err := api.store.FindUserById(userId)
+	if err != nil {
+		httpError(rw, r, err)
+		return
+	}
+	if user == nil {
+		http.Error(rw, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 
-	// Encode the token using hex.
-	tokenString := hex.EncodeToString(token)
+	// Generate new token.
+	token, err := generateAccessToken()
+	if err != nil {
+		httpError(rw, r, err)
+		return
+	}
 
 	// Save the new token.
-	if err := api.ds.SetToken(userId, tokenString); err != nil {
-		httpError(w, r, err)
+	user.Token = token
+	if err := api.ds.SaveUser(user); err != nil {
+		httpError(rw, r, err)
 		return
 	}
 
@@ -43,10 +60,21 @@ func (api *API) HandleGenerateToken(w http.ResponseWriter, r *http.Request) {
 
 	body, err := json.Marshal(resp)
 	if err != nil {
-		httpError(w, r, err)
+		httpError(rw, r, err)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	io.Copy(w, bytes.NewReader(body))
+	io.Copy(rw, bytes.NewReader(body))
+}
+
+func generateAccessToken() (token string, err error) {
+	// Generate new token.
+	tok := make([]byte, TokenByteLen)
+	if _, err := rand.Read(token); err != nil {
+		return "", err
+	}
+
+	// Encode the token using hex and return.
+	return hex.EncodeToString(tok), nil
 }
