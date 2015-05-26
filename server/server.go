@@ -96,7 +96,7 @@ func (srv *Server) Run() {
 	noauth2.PathError = srv.relativePath("/auth/google/error")
 
 	// Top-level router.
-	router := mux.NewRouter()
+	router := mux.NewRouter().PathPrefix(srv.pathPrefix)
 	router.HandleFunc("/", srv.handleRootPath)
 	router.HandleFunc("/login", srv.handleLogin)
 	router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir(filepath.Join(srv.rootDir, "assets")))))
@@ -122,17 +122,9 @@ func (srv *Server) Run() {
 }
 
 func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
-	// Redirect to /login in case the user is not logged in.
 	var (
-		s     = sessions.GetSession(r)
-		token = noauth2.GetToken(r)
+		s = sessions.GetSession(r)
 	)
-	if token == nil || !token.Valid() {
-		deleteProfile(s)
-		noauth2.SetToken(r, nil)
-		http.Redirect(w, r, srv.relativePath("/login"), http.StatusTemporaryRedirect)
-		return
-	}
 
 	// Get the user profile from the session.
 	profile, err := unmarshalProfile(s)
@@ -172,7 +164,7 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 		UserEmail  string
 		LogoutURL  string
 	}{
-		"",
+		srv.pathPrefix,
 		"Home",
 		profile.Name,
 		profile.Email,
@@ -201,7 +193,7 @@ func (srv *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		Title      string
 		LoginURL   string
 	}{
-		"",
+		srv.pathPrefix,
 		"",
 		"Login",
 		srv.relativePath("/auth/google/login"),
@@ -225,6 +217,28 @@ func (srv *Server) api() http.Handler {
 	n := negroni.New(srv.authMiddleware())
 	n.UseHandler(router)
 	return n
+}
+
+func (srv *Server) loginOrTokenRequired() negroni.HandlerFunc {
+	return negroni.HandlerFunc(
+		func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+		})
+}
+
+func (srv *Server) loginRequired() negroni.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+		var (
+			session = sessions.GetSession(r)
+			token   = noauth2.GetToken(r)
+		)
+		if token == nil || !token.Valid() {
+			deleteProfile(session)
+			noauth2.SetToken(r, nil)
+			http.Redirect(rw, r, srv.relativePath("/login"), http.StatusTemporaryRedirect)
+		} else {
+			next(rw, r)
+		}
+	}
 }
 
 func (srv *Server) relativePath(pth string) string {
