@@ -2,7 +2,9 @@ package server
 
 import (
 	// Stdlib
+	"bytes"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -150,13 +152,14 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Read the template.
-	t, err := srv.loadTemplates("homePage.html", "page_header.html", "page_footer.html")
+	t, err := srv.loadTemplates("home.html", "page_header.html", "page_footer.html")
 	if err != nil {
 		httpError(w, r, err)
 		return
 	}
 
 	// Render the template and write it into the response.
+	var content bytes.Buffer
 	ctx := struct {
 		PathPrefix string
 		Title      string
@@ -170,7 +173,11 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 		profile.Email,
 		srv.relativePath("/auth/google/logout?next=") + url.QueryEscape("/"),
 	}
-	t.Execute(w, ctx)
+	if err := t.Execute(&content, ctx); err != nil {
+		httpError(w, r, err)
+		return
+	}
+	io.Copy(w, &content)
 }
 
 func (srv *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -182,16 +189,23 @@ func (srv *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Render the template and write it into the response.
+	var content bytes.Buffer
 	ctx := struct {
 		PathPrefix string
+		UserName   string
 		Title      string
 		LoginURL   string
 	}{
 		"",
+		"",
 		"Login",
 		srv.relativePath("/auth/google/login"),
 	}
-	t.Execute(w, ctx)
+	if err := t.Execute(&content, ctx); err != nil {
+		httpError(w, r, err)
+		return
+	}
+	io.Copy(w, &content)
 }
 
 func (srv *Server) relativePath(pth string) string {
