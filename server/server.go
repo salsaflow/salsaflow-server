@@ -238,14 +238,8 @@ func (srv *Server) getProfile(r *http.Request) (*userProfile, error) {
 	return profile, nil
 }
 
-func (srv *Server) loginOrTokenRequired() negroni.HandlerFunc {
-	return negroni.HandlerFunc(
-		func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-		})
-}
-
-func (srv *Server) loginRequired() negroni.HandlerFunc {
-	return func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+func (srv *Server) loginRequired(next http.Handler) http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
 		var (
 			session = sessions.GetSession(r)
 			token   = noauth2.GetToken(r)
@@ -257,6 +251,35 @@ func (srv *Server) loginRequired() negroni.HandlerFunc {
 		} else {
 			next(rw, r)
 		}
+	}
+}
+
+func (srv *Server) loginOrTokenRequired(next http.Handler) http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		// Try the session token.
+		token := noauth2.GetToken(r)
+		if token != nil && token.Valid() {
+			next(rw, r)
+			return
+		}
+
+		// Try the access token.
+		accessToken := r.Headers().Get("X-SalsaFlow-Token")
+		if accessToken != "" {
+			user, err := srv.store.FindUserByToken()
+			if err != nil {
+				httpError(rw, r, err)
+				return
+			}
+			if user != nil {
+				next(rw, r)
+				return
+			}
+		}
+
+		// Otherwise, unauthorized.
+		http.Error(rw, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
 	}
 }
 
