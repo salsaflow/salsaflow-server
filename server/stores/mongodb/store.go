@@ -1,26 +1,50 @@
 package mongodb
 
 import (
+	// Internal
 	"github.com/salsaflow/salsaflow-server/server/common"
+
+	// Vendor
+	"labix.org/v2/mgo"
+	"labix.org/v2/mgo/bson"
 )
 
 type Store struct {
-	s *mgo.Session
+	session *mgo.Session
 }
 
 func NewStore(url string) (*Store, error) {
-	s, err := mgo.Dial(url)
+	session, err := mgo.Dial(url)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Store{s}, nil
+	return &Store{session}, nil
+}
+
+func (store *Store) FindUserByEmail(email string) (*common.User, error) {
+	var user common.User
+	err := store.session.DB("").C("users").Find(bson.M{"email": email}).One(&user)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (store *Store) FindUserByToken(email string) (*common.User, error) {
+	var user common.User
+	err := store.session.DB("").C("users").Find(bson.M{"token": email}).One(&user)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (store *Store) SaveUser(user *common.User) error {
-
+	panic("Not implemented")
 }
 
-func (store *Store) FindUserById(id string) (*common.User, error) {
-
+func (store *Store) Close() error {
+	store.session.Close()
+	return nil
 }
