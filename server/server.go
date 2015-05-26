@@ -99,10 +99,12 @@ func (srv *Server) Run() {
 	noauth2.PathError = srv.relativePath("/auth/google/error")
 
 	// Top-level router.
-	router := mux.NewRouter().PathPrefix(srv.pathPrefix)
+	router := mux.NewRouter()
+	topRouter := mux.NewRouter()
+	topRouter.PathPrefix(srv.pathPrefix).Handler(router)
 
 	// Root.
-	router.HandleFunc("/", srv.loginRequired(srv.handleRootPath))
+	router.Handle("/", srv.loginRequired(http.HandlerFunc(srv.handleRootPath)))
 
 	// Login.
 	router.HandleFunc("/login/", srv.handleLogin)
@@ -115,7 +117,7 @@ func (srv *Server) Run() {
 
 	// Assets.
 	assets := http.FileServer(http.Dir(filepath.Join(srv.rootDir, "assets")))
-	router.PathPrefix("/assets/").Handler(srv.loginRequired(http.StripPrefix("/assets/"), assets))
+	router.PathPrefix("/assets/").Handler(srv.loginRequired(http.StripPrefix("/assets/", assets)))
 
 	// Negroni middleware.
 	n := negroni.New(negroni.NewRecovery(), negroni.NewLogger())
@@ -128,13 +130,13 @@ func (srv *Server) Run() {
 
 	n.Use(sessions.Sessions("SalsaFlowSession", cookiestore.New([]byte(srv.cookieSecret))))
 	n.Use(noauth2.Google(srv.oauth2Config))
-	n.UseHandler(router)
+	n.UseHandler(topRouter)
 
 	// Start the server using graceful.
 	graceful.Run(srv.addr, srv.timeout, n)
 }
 
-func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) handleRootPath(rw http.ResponseWriter, r *http.Request) {
 	profile, err := srv.getProfile(r)
 	if err != nil {
 		httpError(rw, r, err)
@@ -144,7 +146,7 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 	// Read the template.
 	t, err := srv.loadTemplates("home.html", "page_header.html", "page_footer.html")
 	if err != nil {
-		httpError(w, r, err)
+		httpError(rw, r, err)
 		return
 	}
 
@@ -164,17 +166,17 @@ func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
 		srv.relativePath("/auth/google/logout?next=") + url.QueryEscape("/"),
 	}
 	if err := t.Execute(&content, ctx); err != nil {
-		httpError(w, r, err)
+		httpError(rw, r, err)
 		return
 	}
-	io.Copy(w, &content)
+	io.Copy(rw, &content)
 }
 
-func (srv *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) handleLogin(rw http.ResponseWriter, r *http.Request) {
 	// Read the template.
 	t, err := srv.loadTemplates("login.html", "page_header.html", "page_footer.html")
 	if err != nil {
-		httpError(w, r, err)
+		httpError(rw, r, err)
 		return
 	}
 
@@ -192,29 +194,36 @@ func (srv *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		srv.relativePath("/auth/google/login"),
 	}
 	if err := t.Execute(&content, ctx); err != nil {
-		httpError(w, r, err)
+		httpError(rw, r, err)
 		return
 	}
-	io.Copy(w, &content)
+	io.Copy(rw, &content)
 }
 
 func (srv *Server) api() http.Handler {
 	// API routing.
-	api := NewApi(srv.datastore)
+	api := &API{srv.store}
 
-	router := mux.NewRouter().PathPrefix("/v1")
-	router.Path("/me").Methods("GET").HandleFunc(api.GetMe)
-	router.Path("/users/{userId}/generateToken").Methods("GET").HandleFunc(api.GetGenerateToken)
+	router := mux.NewRouter()
+	topRouter := mux.NewRouter()
+	topRouter.PathPrefix("/v1").Handler(router)
+
+	router.Path("/me").Methods("GET").HandlerFunc(api.GetMe)
+	router.Path("/users/{userId}/generateToken").Methods("GET").HandlerFunc(api.GetGenerateToken)
 
 	// Cover the whole API with token authentication.
-	n := negroni.New(srv.authMiddleware())
-	n.UseHandler(router)
+	// TODO: Insert authentication middleware.
+	n := negroni.New()
+	n.UseHandler(topRouter)
 	return n
 }
 
 func (srv *Server) getProfile(r *http.Request) (*common.User, error) {
 	// Get session for the given HTTP request.
-	session := sessions.GetSession(r)
+	var (
+		session = sessions.GetSession(r)
+		token   = noauth2.GetToken(r)
+	)
 
 	// Get the user profile from the session.
 	profile, err := unmarshalProfile(session)
@@ -232,13 +241,13 @@ func (srv *Server) getProfile(r *http.Request) (*common.User, error) {
 		if err != nil {
 			return nil, err
 		}
-		if err := marshalProfile(s, profile); err != nil {
+		if err := marshalProfile(session, profile); err != nil {
 			return nil, err
 		}
 	}
 
 	// Fetch the user record from the store.
-	user, err := store.FindUserByEmail(profile.Email)
+	user, err := srv.store.FindUserByEmail(profile.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -248,8 +257,8 @@ func (srv *Server) getProfile(r *http.Request) (*common.User, error) {
 	return user, nil
 }
 
-func (srv *Server) loginRequired(next http.Handler) http.HandlerFunc {
-	return func(rw http.ResponseWriter, r *http.Request) {
+func (srv *Server) loginRequired(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		var (
 			session = sessions.GetSession(r)
 			token   = noauth2.GetToken(r)
@@ -259,9 +268,9 @@ func (srv *Server) loginRequired(next http.Handler) http.HandlerFunc {
 			noauth2.SetToken(r, nil)
 			http.Redirect(rw, r, srv.relativePath("/login"), http.StatusTemporaryRedirect)
 		} else {
-			next(rw, r)
+			next.ServeHTTP(rw, r)
 		}
-	}
+	})
 }
 
 func (srv *Server) loginOrTokenRequired(next http.Handler) http.HandlerFunc {
@@ -269,12 +278,12 @@ func (srv *Server) loginOrTokenRequired(next http.Handler) http.HandlerFunc {
 		// Try the session token.
 		token := noauth2.GetToken(r)
 		if token != nil && token.Valid() {
-			next(rw, r)
+			next.ServeHTTP(rw, r)
 			return
 		}
 
 		// Try the access token.
-		accessToken := r.Headers().Get("X-SalsaFlow-Token")
+		accessToken := r.Header.Get(TokenHeader)
 		if accessToken != "" {
 			user, err := srv.store.FindUserByToken(accessToken)
 			if err != nil {
@@ -282,7 +291,7 @@ func (srv *Server) loginOrTokenRequired(next http.Handler) http.HandlerFunc {
 				return
 			}
 			if user != nil {
-				next(rw, r)
+				next.ServeHTTP(rw, r)
 				return
 			}
 		}

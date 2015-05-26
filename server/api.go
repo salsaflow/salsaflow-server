@@ -2,12 +2,12 @@ package server
 
 import (
 	// Stdlib
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
+	"io"
 	"net/http"
-
-	// Internal
-	"github.com/salsaflow/salsaflow-server/server/common"
 
 	// Vendor
 	"github.com/gorilla/mux"
@@ -18,11 +18,16 @@ const TokenByteLen = 16
 const TokenHeader = "X-SalsaFlow-Token"
 
 type API struct {
-	ds DataStore
+	store DataStore
 }
 
-// HandleGenerateToken handles /users/{userId}/generateToken
-func (api *API) HandleGenerateToken(rw http.ResponseWriter, r *http.Request) {
+// GetMe handles GET /me
+func (api *API) GetMe(rw http.ResponseWriter, r *http.Request) {
+	panic("Not implemented")
+}
+
+// GetGenerateToken handles GET /users/{userId}/generateToken
+func (api *API) GetGenerateToken(rw http.ResponseWriter, r *http.Request) {
 	// Get user ID.
 	userId := mux.Vars(r)["userId"]
 
@@ -46,7 +51,7 @@ func (api *API) HandleGenerateToken(rw http.ResponseWriter, r *http.Request) {
 
 	// Save the new token.
 	user.Token = token
-	if err := api.ds.SaveUser(user); err != nil {
+	if err := api.store.SaveUser(user); err != nil {
 		httpError(rw, r, err)
 		return
 	}
@@ -55,7 +60,7 @@ func (api *API) HandleGenerateToken(rw http.ResponseWriter, r *http.Request) {
 	resp := struct {
 		Token string `json:"token"`
 	}{
-		tokenString,
+		token,
 	}
 
 	body, err := json.Marshal(resp)
@@ -64,14 +69,14 @@ func (api *API) HandleGenerateToken(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	rw.Header().Set("Content-Type", "application/json")
 	io.Copy(rw, bytes.NewReader(body))
 }
 
 func generateAccessToken() (token string, err error) {
 	// Generate new token.
 	tok := make([]byte, TokenByteLen)
-	if _, err := rand.Read(token); err != nil {
+	if _, err := rand.Read(tok); err != nil {
 		return "", err
 	}
 

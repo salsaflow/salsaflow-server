@@ -48,7 +48,7 @@ func LoadServerFromEnvironment() (srv *server.Server, err error) {
 	}
 	store, err := mongodb.NewStore(mongoURL)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	oauth2Config := &oauth2.Config{
