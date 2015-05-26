@@ -67,6 +67,11 @@
 			"ImportPath": "gopkg.in/tylerb/graceful.v1",
 			"Comment": "v1.1",
 			"Rev": "ff79a7f00848198d26054b472aafb1043c4b3507"
+		},
+		{
+			"ImportPath": "labix.org/v2/mgo",
+			"Comment": "287",
+			"Rev": "gustavo@niemeyer.net-20140501184651-975yyw9ipld92pji"
 		}
 	]
 }

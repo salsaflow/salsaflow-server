@@ -12,3 +12,4 @@ deps.fetch:
 	go get -d -u github.com/joho/godotenv
 	go get -d -u github.com/unrolled/secure
 	go get -d -u gopkg.in/tylerb/graceful.v1
+	go get -d -u labix.org/v2/mgo
