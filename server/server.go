@@ -213,15 +213,14 @@ func (srv *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 func (srv *Server) api() http.Handler {
 	// API routing.
-	api := newApi(srv.datastore)
+	api := NewApi(srv.datastore)
 
 	router := mux.NewRouter().PathPrefix("/v1")
-
-	tokens := router.PathPrefix("/tokens")
-	tokens.Path("/generate").Methods("GET").HandleFunc(api.handleGenerateToken)
+	router.Path("/me").Methods("GET").HandleFunc(api.GetMe)
+	router.Path("/users/{userId}/generateToken").Methods("GET").HandleFunc(api.GetGenerateToken)
 
 	// Cover the whole API with token authentication.
-	n := negroni.New(srv.tokenAuthMiddleware())
+	n := negroni.New(srv.authMiddleware())
 	n.UseHandler(router)
 	return n
 }
