@@ -6,6 +6,9 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    <!-- Common CSS -->
+    <link rel="stylesheet" type="text/css" href="{{.PathPrefix}}/assets/css/page.css">
+
     <!-- jQuery -->
     <script src="{{.PathPrefix}}/assets/js/jquery-2.1.4.js"></script>
 
@@ -13,9 +16,6 @@
     <script src="{{.PathPrefix}}/assets/bootstrap-3.3.4-dist/js/bootstrap.js"></script>
     <link rel="stylesheet" type="text/css" href="{{.PathPrefix}}/assets/bootstrap-3.3.4-dist/css/bootstrap.css">
     <link rel="stylesheet" type="text/css" href="{{.PathPrefix}}/assets/bootstrap-3.3.4-dist/css/bootstrap-theme.css">
-
-    <!-- Common CSS -->
-    <link rel="stylesheet" type="text/css" href="{{.PathPrefix}}/assets/css/page.css">
 
   </head>
   <body>
@@ -28,8 +28,8 @@
         {{if .UserName}}
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav navbar-right">
-            <li><a href="#"><button class="btn btn-link">{{.UserName}}</button></a></li>
-            <li><a href="{{.LogoutURL}}"><button class="btn btn-default">Log Out</button></a></li>
+            <li><a class="navbar-item" href="#"><button class="btn btn-link">{{.UserName}}</button></a></li>
+            <li><a class="navbar-item" href="{{.LogoutURL}}"><button class="btn btn-default">Log Out</button></a></li>
           </ul>
         </div>
         {{end}}

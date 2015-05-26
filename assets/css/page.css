@@ -1,3 +1,8 @@
 body {
 	padding-top: 70px;
 }
+
+a.navbar-item {
+	padding-top: 8px !important;
+	padding-bottom: 0px !important;
+}
