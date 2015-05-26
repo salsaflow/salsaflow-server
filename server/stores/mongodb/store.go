@@ -41,7 +41,8 @@ func (store *Store) FindUserByToken(email string) (*common.User, error) {
 }
 
 func (store *Store) SaveUser(user *common.User) error {
-	panic("Not implemented")
+	_, err := store.session.DB("").C("users").UpsertId(user.Id, user)
+	return err
 }
 
 func (store *Store) Close() error {
