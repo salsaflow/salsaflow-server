@@ -105,7 +105,7 @@ func (srv *Server) Run() {
 	router.HandleFunc("/login/", srv.handleLogin)
 
 	// Commits.
-	router.HandleFunc("/commits", srv.loginRequired(srv.handleCommits))
+	// router.HandleFunc("/commits", srv.loginRequired(srv.handleCommits))
 
 	// API.
 	router.PathPrefix("/api/").Handler(srv.loginOrTokenRequired(srv.api()))
@@ -132,30 +132,10 @@ func (srv *Server) Run() {
 }
 
 func (srv *Server) handleRootPath(w http.ResponseWriter, r *http.Request) {
-	var (
-		s = sessions.GetSession(r)
-	)
-
-	// Get the user profile from the session.
-	profile, err := unmarshalProfile(s)
+	profile, err := srv.getProfile(r)
 	if err != nil {
-		httpError(w, r, err)
+		httpError(rw, r, err)
 		return
-	}
-	if profile == nil {
-		var (
-			cfg = (*oauth2.Config)(srv.oauth2Config)
-			tok = (oauth2.Token)(token.Get())
-		)
-		profile, err = fetchProfile(cfg, &tok)
-		if err != nil {
-			httpError(w, r, err)
-			return
-		}
-		if err := marshalProfile(s, profile); err != nil {
-			httpError(w, r, err)
-			return
-		}
 	}
 
 	// Read the template.
@@ -227,6 +207,35 @@ func (srv *Server) api() http.Handler {
 	n := negroni.New(srv.authMiddleware())
 	n.UseHandler(router)
 	return n
+}
+
+func (srv *Server) getProfile(r *http.Request) (*userProfile, error) {
+	// Get session for the given HTTP request.
+	session := sessions.GetSession(r)
+
+	// Get the user profile from the session.
+	profile, err := unmarshalProfile(session)
+	if err != nil {
+		return nil, err
+	}
+
+	// In case there is no profile, fetch it and store it in the session.
+	if profile == nil {
+		var (
+			cfg = (*oauth2.Config)(srv.oauth2Config)
+			tok = (oauth2.Token)(token.Get())
+		)
+		profile, err = fetchProfile(cfg, &tok)
+		if err != nil {
+			return nil, err
+		}
+		if err := marshalProfile(s, profile); err != nil {
+			return nil, err
+		}
+	}
+
+	// Return the user profile.
+	return profile, nil
 }
 
 func (srv *Server) loginOrTokenRequired() negroni.HandlerFunc {
