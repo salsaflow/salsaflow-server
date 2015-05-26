@@ -8,6 +8,7 @@ import (
 
 	// Internal
 	"github.com/salsaflow/salsaflow-server/server"
+	"github.com/salsaflow/salsaflow-server/server/stores/mongodb"
 
 	// Vendor
 	oauth2 "github.com/goincremental/negroni-oauth2"

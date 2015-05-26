@@ -1,5 +1,9 @@
 package mongodb
 
+import (
+	"github.com/salsaflow/salsaflow-server/server/common"
+)
+
 type Store struct {
 	s *mgo.Session
 }
