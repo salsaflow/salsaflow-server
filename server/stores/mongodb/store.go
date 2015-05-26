@@ -35,6 +35,10 @@ func (store *Store) FindUserByToken(token string) (*common.User, error) {
 }
 
 func (store *Store) SaveUser(user *common.User) error {
+	if user.Id == "" {
+		user.Id = bson.NewObjectId().Hex()
+	}
+
 	_, err := store.session.DB("").C("users").UpsertId(user.Id, user)
 	return err
 }
@@ -48,6 +52,9 @@ func (store *Store) find(query interface{}) (*common.User, error) {
 	var user common.User
 	err := store.session.DB("").C("users").Find(query).One(&user)
 	if err != nil {
+		if err == mgo.ErrNotFound {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &user, nil

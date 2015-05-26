@@ -101,13 +101,17 @@ func (srv *Server) Run() {
 	// Top-level router.
 	router := mux.NewRouter()
 	topRouter := mux.NewRouter()
-	topRouter.PathPrefix(srv.pathPrefix).Handler(router)
+	if srv.pathPrefix != "" {
+		topRouter.PathPrefix(srv.pathPrefix).Handler(router)
+	} else {
+		topRouter = router
+	}
 
 	// Root.
 	router.Handle("/", srv.loginRequired(http.HandlerFunc(srv.handleRootPath)))
 
 	// Login.
-	router.HandleFunc("/login/", srv.handleLogin)
+	router.HandleFunc("/login", srv.handleLogin)
 
 	// Commits.
 	// router.HandleFunc("/commits", srv.loginRequired(srv.handleCommits))
@@ -117,7 +121,7 @@ func (srv *Server) Run() {
 
 	// Assets.
 	assets := http.FileServer(http.Dir(filepath.Join(srv.rootDir, "assets")))
-	router.PathPrefix("/assets/").Handler(srv.loginRequired(http.StripPrefix("/assets/", assets)))
+	router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", assets))
 
 	// Negroni middleware.
 	n := negroni.New(negroni.NewRecovery(), negroni.NewLogger())
