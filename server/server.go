@@ -97,12 +97,24 @@ func (srv *Server) Run() {
 
 	// Top-level router.
 	router := mux.NewRouter().PathPrefix(srv.pathPrefix)
-	router.HandleFunc("/", srv.handleRootPath)
+
+	// Secure section (the user must be authenticated).
+	secureMux := mux.NewRouter()
+	secureMux.HandleFunc("/", srv.handleRootPath)
+
+	secure := negroni.New(srv.loginRequired())
+	secure.UseHandler(secureMux)
+
+	router.Handle("/", secure)
+
+	// Login.
 	router.HandleFunc("/login", srv.handleLogin)
-	router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir(filepath.Join(srv.rootDir, "assets")))))
 
 	// API.
-	router.PathPrefix("/api").Handler(srv.api())
+	router.PathPrefix("/api/").Handler(srv.api())
+
+	// Assets.
+	router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir(filepath.Join(srv.rootDir, "assets")))))
 
 	// Negroni.
 	n := negroni.New(negroni.NewRecovery(), negroni.NewLogger())
