@@ -99,6 +99,9 @@ func (srv *Server) Run() {
 	router.HandleFunc("/login", srv.handleLogin)
 	router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir(filepath.Join(srv.rootDir, "assets")))))
 
+	// API.
+	router.PathPrefix("/api/").Handle("/", srv.api())
+
 	// Negroni.
 	n := negroni.New(negroni.NewRecovery(), negroni.NewLogger())
 
@@ -206,6 +209,21 @@ func (srv *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	io.Copy(w, &content)
+}
+
+func (srv *Server) api() http.Handler {
+	// API routing.
+	api := newApi(srv.datastore)
+
+	router := mux.NewRouter().PathPrefix("/v1")
+
+	tokens := router.PathPrefix("/tokens")
+	tokens.Path("/generate").Methods("GET").HandleFunc(api.handleGenerateToken)
+
+	// Cover the whole API with token authentication.
+	n := negroni.New(srv.tokenAuthMiddleware())
+	n.UseHandler(router)
+	return n
 }
 
 func (srv *Server) relativePath(pth string) string {
