@@ -32,6 +32,7 @@ const (
 type Server struct {
 	productionMode bool
 	pathPrefix     string
+	ds             DataStore
 	oauth2Config   *noauth2.Config
 	addr           string
 	cookieSecret   string
@@ -41,8 +42,9 @@ type Server struct {
 
 type OptionFunc func(srv *Server)
 
-func New(config *noauth2.Config, options ...OptionFunc) *Server {
+func New(ds DataStore, config *noauth2.Config, options ...OptionFunc) *Server {
 	srv := &Server{
+		ds:           ds,
 		oauth2Config: config,
 		addr:         DefaultAddress,
 		cookieSecret: DefaultCookieSecret,

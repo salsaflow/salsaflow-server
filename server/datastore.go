@@ -1,6 +1,7 @@
 package server
 
 type DataStore interface {
-	GetToken(userId string) (token string, err error)
-	SetToken(userId, token string) (err error)
+	FindUserByEmail(email string) (*common.User, error)
+	FindUserByToken(token string) (*common.User, error)
+	SaveUser(user *common.User) error
 }
