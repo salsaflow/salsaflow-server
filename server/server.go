@@ -100,7 +100,7 @@ func (srv *Server) Run() {
 	router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir(filepath.Join(srv.rootDir, "assets")))))
 
 	// API.
-	router.PathPrefix("/api/").Handle("/", srv.api())
+	router.PathPrefix("/api").Handler(srv.api())
 
 	// Negroni.
 	n := negroni.New(negroni.NewRecovery(), negroni.NewLogger())
