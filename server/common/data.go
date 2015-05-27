@@ -6,3 +6,12 @@ type User struct {
 	Email string `bson:"email,omitempty"`
 	Token string `bson:"token,omitempty"`
 }
+
+func (user *User) Clone() *User {
+	return &User{
+		Id:    user.Id,
+		Name:  user.Name,
+		Email: user.Email,
+		Token: user.Token,
+	}
+}

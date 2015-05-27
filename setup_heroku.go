@@ -8,6 +8,7 @@ import (
 
 	// Internal
 	"github.com/salsaflow/salsaflow-server/server"
+	"github.com/salsaflow/salsaflow-server/server/stores/memory"
 
 	// Vendor
 	oauth2 "github.com/goincremental/negroni-oauth2"
@@ -40,6 +41,8 @@ func LoadServerFromEnvironment() (srv *server.Server, err error) {
 		redirectURL  = mustGetenv("SF_OAUTH2_REDIRECT_URL")
 	)
 
+	store := memory.NewStore()
+
 	oauth2Config := &oauth2.Config{
 		ClientID:     clientId,
 		ClientSecret: clientSecret,
@@ -47,7 +50,7 @@ func LoadServerFromEnvironment() (srv *server.Server, err error) {
 		Scopes:       []string{"email"},
 	}
 
-	return server.New(oauth2Config,
+	return server.New(store, oauth2Config,
 		server.EnableProductionMode(),
 		server.SetAddress(addr),
 		server.SetCookieSecret(cookieSecret)), nil
