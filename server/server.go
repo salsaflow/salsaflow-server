@@ -113,6 +113,9 @@ func (srv *Server) Run() {
 	// Login.
 	router.HandleFunc("/login", srv.handleLogin)
 
+	// User profile.
+	router.Handle("/profile", srv.loginRequired(http.HandlerFunc(srv.handleProfile)))
+
 	// Commits.
 	// router.HandleFunc("/commits", srv.loginRequired(srv.handleCommits))
 
@@ -204,6 +207,43 @@ func (srv *Server) handleLogin(rw http.ResponseWriter, r *http.Request) {
 	io.Copy(rw, &content)
 }
 
+func (srv *Server) handleProfile(rw http.ResponseWriter, r *http.Request) {
+	// Get the user record.
+	user, err := srv.getProfile(r)
+	if err != nil {
+		httpError(rw, r, err)
+		return
+	}
+
+	// Read the template.
+	t, err := srv.loadTemplates("profile.html", "page_header.html", "page_footer.html")
+	if err != nil {
+		httpError(rw, r, err)
+		return
+	}
+
+	// Render the template and write it into the response.
+	var content bytes.Buffer
+	ctx := struct {
+		PathPrefix string
+		Title      string
+		UserName   string
+		UserEmail  string
+		UserToken  string
+	}{
+		srv.pathPrefix,
+		"Profile",
+		user.Name,
+		user.Email,
+		user.Token,
+	}
+	if err := t.Execute(&content, ctx); err != nil {
+		httpError(rw, r, err)
+		return
+	}
+	io.Copy(rw, &content)
+}
+
 func (srv *Server) api() http.Handler {
 	// API routing.
 	api := &API{srv.store}
@@ -212,7 +252,6 @@ func (srv *Server) api() http.Handler {
 	topRouter := mux.NewRouter()
 	topRouter.PathPrefix("/v1").Handler(router)
 
-	router.Path("/me").Methods("GET").HandlerFunc(api.GetMe)
 	router.Path("/users/{userId}/generateToken").Methods("GET").HandlerFunc(api.GetGenerateToken)
 
 	// Cover the whole API with token authentication.

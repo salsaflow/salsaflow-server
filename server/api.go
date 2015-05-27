@@ -21,11 +21,6 @@ type API struct {
 	store DataStore
 }
 
-// GetMe handles GET /me
-func (api *API) GetMe(rw http.ResponseWriter, r *http.Request) {
-	panic("Not implemented")
-}
-
 // GetGenerateToken handles GET /users/{userId}/generateToken
 func (api *API) GetGenerateToken(rw http.ResponseWriter, r *http.Request) {
 	// Get user ID.
