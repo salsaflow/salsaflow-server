@@ -123,7 +123,7 @@ func (srv *Server) Run() {
 	router.Handle("/commits", srv.loginRequired(http.HandlerFunc(srv.handleCommits)))
 
 	// API.
-	router.PathPrefix("/api/").Handler(http.StripPrefix("/api", srv.loginOrTokenRequired(srv.api())))
+	router.PathPrefix("/api/").Handler(http.StripPrefix("/api", srv.api()))
 
 	// Assets.
 	assets := http.FileServer(http.Dir(filepath.Join(srv.rootDir, "assets")))
@@ -309,20 +309,16 @@ func (srv *Server) handleCommits(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *Server) api() http.Handler {
-	// API routing.
 	api := &API{srv.store}
 
 	router := mux.NewRouter()
-	topRouter := mux.NewRouter()
-	topRouter.PathPrefix("/v1").Handler(http.StripPrefix("/v1", router))
+	top := mux.NewRouter()
+	top.PathPrefix("/v1").Handler(http.StripPrefix("/v1", router))
 
-	router.Path("/me").Methods("GET").HandlerFunc(api.GetMe)
+	router.Path("/v1/me").Methods("GET").HandlerFunc(api.GetMe)
+	router.Path("/v1/users/{userId}/generateToken").Methods("GET").HandlerFunc(api.GetGenerateToken)
 
-	// TODO: Make sure the ID corresponds with the user sending the request.
-	router.Path("/users/{userId}/generateToken").Methods("GET").HandlerFunc(api.GetGenerateToken)
-
-	// Cover the whole API with token authentication.
-	return srv.loginOrTokenRequired(topRouter)
+	return top
 }
 
 func (srv *Server) getProfile(r *http.Request) (*common.User, error) {
