@@ -30,14 +30,13 @@
   var userEmail = "{{.User.Email}}";
   var userToken = "{{.User.Token}}";
 
-  // Token.
+  // Set the initial token text to dots.
   var tokenElem = $("#token");
   var tokenDots = "";
   for (var i = 0; i < userToken.length; i++) {
-    tokenDots += "\u00B7";
+    tokenDots += "\u25CF";
   }
 
-  // Set the initial token text to dots.
   var tokenVisible = false;
   function renderToken() {
     if (tokenVisible) {
@@ -47,7 +46,7 @@
     }
   }
 
-  renderToken()
+  renderToken();
 
   function toggleTokenVisibility() {
     var btn = $("#showHideButton");
