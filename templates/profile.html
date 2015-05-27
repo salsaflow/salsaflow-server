@@ -2,22 +2,81 @@
 
 <h1>Personal Profile</h1>
 
-<table>
-  <tr><td>Name:</td><td>{{.User.Name}}</td><td></td></tr>
-  <tr><td>Email:</td><td>{{.User.Email}}</td><td></td></tr>
-  <tr><td>API token:</td><td id="token">{{.User.Token}}</td><td><button class="btn btn-primary" onclick="regenerateToken()">Regenerate</button></td></tr>
+<table class="table">
+  <tr>
+    <td>Name:</td>
+    <td>{{.User.Name}}</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Email:</td>
+    <td>{{.User.Email}}</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>API token:</td>
+    <td id="token"></td>
+    <td>
+      <button id="showHideButton" class="btn btn-danger" onclick="toggleTokenVisibility()">Show</button>
+      <button class="btn btn-primary" onclick="regenerateToken()">Regenerate</button>
+    </td>
+  </tr>
 </table>
 
 <script type="text/javascript">
-  var apiURL = window.location.protocol + "//" + window.location.host + {{.PathPrefix}} + "/api/v1";
-  console.log(apiURL);
-  var userId = {{.User.Id}};
+  // Make the user object accessible to JS easily.
+  var userId    = "{{.User.Id}}";
+  var userName  = "{{.User.Name}}";
+  var userEmail = "{{.User.Email}}";
+  var userToken = "{{.User.Token}}";
+
+  // Token.
+  var tokenElem = $("#token");
+  var tokenDots = "";
+  for (var i = 0; i < userToken.length; i++) {
+    tokenDots += "\u00B7";
+  }
+
+  // Set the initial token text to dots.
+  var tokenVisible = false;
+  function renderToken() {
+    if (tokenVisible) {
+      tokenElem.text(userToken);
+    } else {
+      tokenElem.text(tokenDots);
+    }
+  }
+
+  renderToken()
+
+  function toggleTokenVisibility() {
+    var btn = $("#showHideButton");
+
+    if (tokenVisible) {
+      btn.text("Show");
+      btn.removeClass("btn-success");
+      btn.addClass("btn-danger");
+      tokenVisible = false;
+      renderToken();
+    } else {
+      btn.text("Hide");
+      btn.removeClass("btn-danger");
+      btn.addClass("btn-success");
+      tokenVisible = true;
+      renderToken();
+    }
+  }
+
+  // Token regeneration.
+  var loc = window.location;
+  var apiURL = loc.protocol + "//" + loc.host + {{.PathPrefix}} + "/api/v1";
 
   function regenerateToken() {
     $.get(apiURL + "/users/" + userId + "/generateToken")
       .done(function(data) {
-        console.log(data);   
-       })
+        userToken = data.token;
+        renderToken();
+      })
       .fail(function(err) {
         console.error(err)
       });

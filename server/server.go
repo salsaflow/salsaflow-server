@@ -120,7 +120,7 @@ func (srv *Server) Run() {
 	// router.HandleFunc("/commits", srv.loginRequired(srv.handleCommits))
 
 	// API.
-	router.PathPrefix("/api/").Handler(srv.loginOrTokenRequired(srv.api()))
+	router.PathPrefix("/api/").Handler(http.StripPrefix("/api", srv.loginOrTokenRequired(srv.api())))
 
 	// Assets.
 	assets := http.FileServer(http.Dir(filepath.Join(srv.rootDir, "assets")))
@@ -246,7 +246,7 @@ func (srv *Server) api() http.Handler {
 
 	router := mux.NewRouter()
 	topRouter := mux.NewRouter()
-	topRouter.PathPrefix("/v1").Handler(router)
+	topRouter.PathPrefix("/v1").Handler(http.StripPrefix("/v1", router))
 
 	router.Path("/users/{userId}/generateToken").Methods("GET").HandlerFunc(api.GetGenerateToken)
 
