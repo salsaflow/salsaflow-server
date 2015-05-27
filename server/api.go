@@ -24,7 +24,7 @@ type API struct {
 // It is possible to authenticate with a session here, no need for a token.
 func (api *API) GetMe(rw http.ResponseWriter, r *http.Request) {
 	// Get the requesting user record.
-	user, err := getRequester(r, api.store)
+	user, err := getApiRequester(r, api.store)
 	if err != nil {
 		httpError(rw, r, err)
 		return
@@ -48,7 +48,7 @@ func (api *API) GetMe(rw http.ResponseWriter, r *http.Request) {
 // GetGenerateToken handles GET /users/{userId}/generateToken
 func (api *API) GetGenerateToken(rw http.ResponseWriter, r *http.Request) {
 	// Get the requesting user record.
-	user, err := getRequester(r, api.store)
+	user, err := getApiRequester(r, api.store)
 	if err != nil {
 		httpError(rw, r, err)
 		return

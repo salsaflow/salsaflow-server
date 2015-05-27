@@ -146,7 +146,7 @@ func (srv *Server) Run() {
 }
 
 func (srv *Server) handleRootPath(rw http.ResponseWriter, r *http.Request) {
-	user, err := getRequester(r, srv.store)
+	user, err := getPageRequester(r, srv.oauth2Config, srv.store)
 	if err != nil {
 		httpError(rw, r, err)
 		return
@@ -161,7 +161,7 @@ func (srv *Server) handleRootPath(rw http.ResponseWriter, r *http.Request) {
 
 func (srv *Server) handleLogin(rw http.ResponseWriter, r *http.Request) {
 	// Make sure the user is really not authenticated.
-	user, err := getRequester(r, srv.store)
+	user, err := getPageRequester(r, srv.oauth2Config, srv.store)
 	if err != nil {
 		httpError(rw, r, err)
 		return
@@ -206,7 +206,7 @@ func (srv *Server) handleLogin(rw http.ResponseWriter, r *http.Request) {
 
 func (srv *Server) handleProfile(rw http.ResponseWriter, r *http.Request) {
 	// Get the user record.
-	user, err := getRequester(r, srv.store)
+	user, err := getPageRequester(r, srv.oauth2Config, srv.store)
 	if err != nil {
 		httpError(rw, r, err)
 		return
@@ -240,7 +240,7 @@ func (srv *Server) handleProfile(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *Server) handleConfigurations(rw http.ResponseWriter, r *http.Request) {
-	user, err := getRequester(r, srv.store)
+	user, err := getPageRequester(r, srv.oauth2Config, srv.store)
 	if err != nil {
 		httpError(rw, r, err)
 		return
@@ -274,7 +274,7 @@ func (srv *Server) handleConfigurations(rw http.ResponseWriter, r *http.Request)
 }
 
 func (srv *Server) handleCommits(rw http.ResponseWriter, r *http.Request) {
-	user, err := getRequester(r, srv.store)
+	user, err := getPageRequester(r, srv.oauth2Config, srv.store)
 	if err != nil {
 		httpError(rw, r, err)
 		return

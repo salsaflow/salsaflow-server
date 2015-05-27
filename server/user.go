@@ -4,6 +4,7 @@ import (
 	// Stdlib
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"net/http"
 
 	// Internal
@@ -15,25 +16,20 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func getRequester(r *http.Request, config *noauth2.Config, store DataStore) (*common.User, error) {
-	// Token first.
-	// In case there is a valid access token present in the request, we are done.
-	// That means that the user is fully initialised and there is nothing to be done.
-	tokenHeader := r.Header.Get(TokenHeader)
-	if tokenHeader != "" {
-		user, err := store.FindUserByToken(tokenHeader)
-		if err != nil {
-			return nil, err
-		}
-		if user != nil {
-			return user, nil
-		}
-	}
+var (
+	errTokenMissing   = errors.New("session token is missing")
+	errProfileMissing = errors.New("session profile is missing")
+)
 
-	// Session.
-	// In case there is a session, the user still does not have to be initialised.
-	// So we need to make sure there is a user record in the DB. In case there isn't,
-	// we create one.
+func getUserFromToken(r *http.Request, store DataStore) (*common.User, error) {
+	token := r.Header.Get(TokenHeader)
+	if token == "" {
+		return nil, nil
+	}
+	return store.FindUserByToken(token)
+}
+
+func getUserFromSession(r *http.Request, store DataStore) (*common.User, error) {
 	var (
 		session = sessions.GetSession(r)
 		token   = noauth2.GetToken(r)
@@ -43,7 +39,7 @@ func getRequester(r *http.Request, config *noauth2.Config, store DataStore) (*co
 	// In case the token is not valid, we clean up the session and return.
 	if token == nil || !token.Valid() {
 		deleteProfile(session)
-		return nil, nil
+		return nil, errTokenMissing
 	}
 
 	// Otherwise we try to unmarshal the profile from the session
@@ -52,7 +48,52 @@ func getRequester(r *http.Request, config *noauth2.Config, store DataStore) (*co
 	if err != nil {
 		return nil, err
 	}
-	if profile != nil {
+	if profile == nil {
+		return nil, errProfileMissing
+	}
+	return store.FindUserByEmail(profile.Email)
+}
+
+// getPageRequester returns the user record for the given request.
+// In case the session or the user profile is not complete, getPageRequester fixes stuff.
+func getPageRequester(r *http.Request, config *noauth2.Config, store DataStore) (*common.User, error) {
+	// Token first.
+	user, err := getUserFromToken(r, store)
+	if err != nil {
+		return nil, err
+	}
+	if user != nil {
+		return user, nil
+	}
+
+	// Session.
+	user, err = getUserFromSession(r, store)
+	switch {
+	case err == errTokenMissing:
+		// In case the session token is missing, there is nothing we can do.
+		// The user is not authenticated and there is no way how to identify them.
+		return nil, nil
+
+	case err == errProfileMissing:
+		// In case the token is valid, but there is no session profile,
+		// we need to fetch that profile from Google.
+		var (
+			session = sessions.GetSession(r)
+			token   = noauth2.GetToken(r)
+			cfg     = (*oauth2.Config)(config)
+			tok     = (oauth2.Token)(token.Get())
+		)
+		profile, err := fetchProfile(cfg, &tok)
+		if err != nil {
+			return nil, err
+		}
+		// Store the profile in the session immediately.
+		if err := marshalProfile(session, profile); err != nil {
+			return nil, err
+		}
+
+		// Now that we do have the profile, we can try to fetch the associated record.
+		// In case there is no record yet, we create a new user for the given email.
 		user, err := store.FindUserByEmail(profile.Email)
 		if err != nil {
 			return nil, err
@@ -60,33 +101,39 @@ func getRequester(r *http.Request, config *noauth2.Config, store DataStore) (*co
 		if user != nil {
 			return user, nil
 		}
-	}
+		return createUser(profile, store)
 
-	// Now we know that the token is valid,
-	// but there is no profile stored in the session, so let's fetch it
-	// and store it in the session.
-	var (
-		cfg = (*oauth2.Config)(config)
-		tok = (oauth2.Token)(token.Get())
-	)
-	profile, err = fetchProfile(cfg, &tok)
-	if err != nil {
+	case err != nil:
 		return nil, err
+	default:
+		// No need to do anything, simply return the user record.
+		// Might be nil, nil, but that is correct as well.
+		return user, nil
 	}
-	if err := marshalProfile(session, profile); err != nil {
-		return nil, err
-	}
+}
 
-	// Now that we do have a user profile, we can try to fetch the record.
-	// In case there is no record yet, we create a new user for the given email.
-	user, err := store.FindUserByEmail(profile.Email)
+// getApiRequester is similar to getPageRequester, but it is not trying to finalize
+// the session or the user record in case something is missing.
+func getApiRequester(r *http.Request, store DataStore) (*common.User, error) {
+	// Token first.
+	user, err := getUserFromToken(r, store)
 	if err != nil {
 		return nil, err
 	}
 	if user != nil {
 		return user, nil
 	}
-	return createUser(profile, store)
+
+	// Session.
+	user, err = getUserFromSession(r, store)
+	switch {
+	case err == errTokenMissing:
+		fallthrough
+	case err == errProfileMissing:
+		return nil, nil
+	default:
+		return user, err
+	}
 }
 
 func createUser(profile *userProfile, store DataStore) (*common.User, error) {
