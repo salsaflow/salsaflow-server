@@ -227,15 +227,11 @@ func (srv *Server) handleProfile(rw http.ResponseWriter, r *http.Request) {
 	ctx := struct {
 		PathPrefix string
 		Title      string
-		UserName   string
-		UserEmail  string
-		UserToken  string
+		User       *common.User
 	}{
 		srv.pathPrefix,
 		"Profile",
-		user.Name,
-		user.Email,
-		user.Token,
+		user,
 	}
 	if err := t.Execute(&content, ctx); err != nil {
 		httpError(rw, r, err)
