@@ -144,7 +144,7 @@ func (srv *Server) Run() {
 }
 
 func (srv *Server) handleRootPath(rw http.ResponseWriter, r *http.Request) {
-	profile, err := srv.getProfile(r)
+	user, err := srv.getProfile(r)
 	if err != nil {
 		httpError(rw, r, err)
 		return
@@ -162,14 +162,12 @@ func (srv *Server) handleRootPath(rw http.ResponseWriter, r *http.Request) {
 	ctx := struct {
 		PathPrefix string
 		Title      string
-		UserName   string
-		UserEmail  string
+		User       *common.User
 		LogoutURL  string
 	}{
 		srv.pathPrefix,
 		"Home",
-		profile.Name,
-		profile.Email,
+		user,
 		srv.relativePath("/auth/google/logout?next=") + url.QueryEscape("/"),
 	}
 	if err := t.Execute(&content, ctx); err != nil {
@@ -191,12 +189,12 @@ func (srv *Server) handleLogin(rw http.ResponseWriter, r *http.Request) {
 	var content bytes.Buffer
 	ctx := struct {
 		PathPrefix string
-		UserName   string
+		User       *common.User
 		Title      string
 		LoginURL   string
 	}{
 		srv.pathPrefix,
-		"",
+		nil,
 		"Login",
 		srv.relativePath("/auth/google/login"),
 	}
