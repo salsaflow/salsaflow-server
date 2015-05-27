@@ -152,6 +152,17 @@ func (srv *Server) handleRootPath(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *Server) handleLogin(rw http.ResponseWriter, r *http.Request) {
+	// Make sure the user is really not authenticated.
+	user, err := srv.getProfile(r)
+	if err != nil {
+		httpError(rw, r, err)
+		return
+	}
+	if user != nil {
+		http.Redirect(rw, r, srv.relativePath("/"), http.StatusFound)
+		return
+	}
+
 	// Read the template.
 	t, err := srv.loadTemplates("login.html", "page_header.html", "page_footer.html")
 	if err != nil {
@@ -314,7 +325,7 @@ func (srv *Server) loginRequired(next http.Handler) http.Handler {
 			deleteProfile(session)
 			noauth2.SetToken(r, nil)
 			next := url.QueryEscape(r.URL.RequestURI())
-			http.Redirect(rw, r, fmt.Sprintf("%v?next=%v", noauth2.PathLogin, next), http.StatusTemporaryRedirect)
+			http.Redirect(rw, r, fmt.Sprintf("%v?next=%v", noauth2.PathLogin, next), http.StatusFound)
 		} else {
 			next.ServeHTTP(rw, r)
 		}
