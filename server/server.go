@@ -121,7 +121,7 @@ func (srv *Server) Run() {
 	router.Handle("/configurations", srv.loginRequired(http.HandlerFunc(srv.handleConfigurations)))
 
 	// Commits.
-	// router.HandleFunc("/commits", srv.loginRequired(srv.handleCommits))
+	router.Handle("/commits", srv.loginRequired(http.HandlerFunc(srv.handleCommits)))
 
 	// API.
 	router.PathPrefix("/api/").Handler(http.StripPrefix("/api", srv.loginOrTokenRequired(srv.api())))
@@ -249,6 +249,40 @@ func (srv *Server) handleConfigurations(rw http.ResponseWriter, r *http.Request)
 	}{
 		srv.pathPrefix,
 		"Configurations",
+		user,
+		srv.relativePath("/auth/google/logout?next=") + url.QueryEscape(srv.relativePath("/login")),
+	}
+	if err := t.Execute(&content, ctx); err != nil {
+		httpError(rw, r, err)
+		return
+	}
+	io.Copy(rw, &content)
+}
+
+func (srv *Server) handleCommits(rw http.ResponseWriter, r *http.Request) {
+	user, err := srv.getProfile(r)
+	if err != nil {
+		httpError(rw, r, err)
+		return
+	}
+
+	// Read the template.
+	t, err := srv.loadTemplates("commits.html", "page_header.html", "page_footer.html")
+	if err != nil {
+		httpError(rw, r, err)
+		return
+	}
+
+	// Render the template and write it into the response.
+	var content bytes.Buffer
+	ctx := struct {
+		PathPrefix string
+		Title      string
+		User       *common.User
+		LogoutURL  string
+	}{
+		srv.pathPrefix,
+		"Commits",
 		user,
 		srv.relativePath("/auth/google/logout?next=") + url.QueryEscape(srv.relativePath("/login")),
 	}
