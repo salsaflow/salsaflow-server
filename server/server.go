@@ -153,6 +153,7 @@ func (srv *Server) handleRootPath(rw http.ResponseWriter, r *http.Request) {
 		httpError(rw, r, err)
 		return
 	}
+	fmt.Println(user)
 	if user != nil {
 		http.Redirect(rw, r, srv.relativePath("/configurations"), http.StatusFound)
 	} else {
@@ -170,6 +171,12 @@ func (srv *Server) handleLogin(rw http.ResponseWriter, r *http.Request) {
 	if user != nil {
 		http.Redirect(rw, r, srv.relativePath("/"), http.StatusFound)
 		return
+	}
+
+	// Get the next URL.
+	next := r.FormValue("next")
+	if next == "" {
+		next = srv.relativePath("/")
 	}
 
 	// Read the template.
@@ -190,7 +197,7 @@ func (srv *Server) handleLogin(rw http.ResponseWriter, r *http.Request) {
 		srv.pathPrefix,
 		nil,
 		"Login",
-		srv.relativePath("/auth/google/login"),
+		srv.relativePath(fmt.Sprintf("/auth/google/login?next=%v", url.QueryEscape(next))),
 	}
 	if err := t.Execute(&content, ctx); err != nil {
 		httpError(rw, r, err)
@@ -374,7 +381,7 @@ func (srv *Server) loginRequired(next http.Handler) http.Handler {
 			deleteProfile(session)
 			noauth2.SetToken(r, nil)
 			next := url.QueryEscape(r.URL.RequestURI())
-			http.Redirect(rw, r, fmt.Sprintf("%v?next=%v", noauth2.PathLogin, next), http.StatusFound)
+			http.Redirect(rw, r, fmt.Sprintf("%v?next=%v", srv.relativePath("/login"), next), http.StatusFound)
 		} else {
 			next.ServeHTTP(rw, r)
 		}
