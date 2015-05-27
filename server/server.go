@@ -148,7 +148,16 @@ func (srv *Server) Run() {
 }
 
 func (srv *Server) handleRootPath(rw http.ResponseWriter, r *http.Request) {
-	http.Redirect(rw, r, srv.relativePath("/configurations"), http.StatusMovedPermanently)
+	user, err := srv.getProfile(r)
+	if err != nil {
+		httpError(rw, r, err)
+		return
+	}
+	if user != nil {
+		http.Redirect(rw, r, srv.relativePath("/configurations"), http.StatusFound)
+	} else {
+		http.Redirect(rw, r, srv.relativePath("/login"), http.StatusFound)
+	}
 }
 
 func (srv *Server) handleLogin(rw http.ResponseWriter, r *http.Request) {
