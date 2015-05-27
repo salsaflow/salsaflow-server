@@ -117,6 +117,9 @@ func (srv *Server) Run() {
 	// User profile.
 	router.Handle("/profile", srv.loginRequired(http.HandlerFunc(srv.handleProfile)))
 
+	// Configurations.
+	router.Handle("/configurations", srv.loginRequired(http.HandlerFunc(srv.handleConfigurations)))
+
 	// Commits.
 	// router.HandleFunc("/commits", srv.loginRequired(srv.handleCommits))
 
@@ -145,37 +148,7 @@ func (srv *Server) Run() {
 }
 
 func (srv *Server) handleRootPath(rw http.ResponseWriter, r *http.Request) {
-	user, err := srv.getProfile(r)
-	if err != nil {
-		httpError(rw, r, err)
-		return
-	}
-
-	// Read the template.
-	t, err := srv.loadTemplates("home.html", "page_header.html", "page_footer.html")
-	if err != nil {
-		httpError(rw, r, err)
-		return
-	}
-
-	// Render the template and write it into the response.
-	var content bytes.Buffer
-	ctx := struct {
-		PathPrefix string
-		Title      string
-		User       *common.User
-		LogoutURL  string
-	}{
-		srv.pathPrefix,
-		"Home",
-		user,
-		srv.relativePath("/auth/google/logout?next=") + url.QueryEscape(srv.relativePath("/login")),
-	}
-	if err := t.Execute(&content, ctx); err != nil {
-		httpError(rw, r, err)
-		return
-	}
-	io.Copy(rw, &content)
+	http.Redirect(rw, r, srv.relativePath("/configurations"), http.StatusMovedPermanently)
 }
 
 func (srv *Server) handleLogin(rw http.ResponseWriter, r *http.Request) {
@@ -231,6 +204,40 @@ func (srv *Server) handleProfile(rw http.ResponseWriter, r *http.Request) {
 	}{
 		srv.pathPrefix,
 		"Profile",
+		user,
+		srv.relativePath("/auth/google/logout?next=") + url.QueryEscape(srv.relativePath("/login")),
+	}
+	if err := t.Execute(&content, ctx); err != nil {
+		httpError(rw, r, err)
+		return
+	}
+	io.Copy(rw, &content)
+}
+
+func (srv *Server) handleConfigurations(rw http.ResponseWriter, r *http.Request) {
+	user, err := srv.getProfile(r)
+	if err != nil {
+		httpError(rw, r, err)
+		return
+	}
+
+	// Read the template.
+	t, err := srv.loadTemplates("configurations.html", "page_header.html", "page_footer.html")
+	if err != nil {
+		httpError(rw, r, err)
+		return
+	}
+
+	// Render the template and write it into the response.
+	var content bytes.Buffer
+	ctx := struct {
+		PathPrefix string
+		Title      string
+		User       *common.User
+		LogoutURL  string
+	}{
+		srv.pathPrefix,
+		"Configurations",
 		user,
 		srv.relativePath("/auth/google/logout?next=") + url.QueryEscape(srv.relativePath("/login")),
 	}

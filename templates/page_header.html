@@ -30,6 +30,20 @@
         </div>
         {{if .User}}
         <div class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            {{if eq .Title "Configurations"}}
+            <li class="active">
+            {{else}}
+            <li>
+            {{end}}
+            <a href="{{.PathPrefix}}/configurations">Configurations</a></li>
+            {{if eq .Title "Commits"}}
+            <li class="active">
+            {{else}}
+            <li>
+            {{end}}
+            <a href="{{.PathPrefix}}/commits">Commits</a></li>
+          </ul>
           <ul class="nav navbar-nav navbar-right">
             <li><a class="navbar-item" href="{{.PathPrefix}}/profile"><button class="btn btn-link">{{.User.Name}}</button></a></li>
             <li><a class="navbar-item" href="{{.LogoutURL}}"><button class="btn btn-default">Log Out</button></a></li>
