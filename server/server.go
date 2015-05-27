@@ -317,6 +317,12 @@ func (srv *Server) getProfile(r *http.Request) (*common.User, error) {
 		token   = noauth2.GetToken(r)
 	)
 
+	// TODO: Ugly as hell. This should be somewhere else.
+	if token == nil || !token.Valid() {
+		deleteProfile(session)
+		return nil, nil
+	}
+
 	// Get the user profile from the session.
 	profile, err := unmarshalProfile(session)
 	if err != nil {
