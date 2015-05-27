@@ -314,8 +314,8 @@ func (srv *Server) api() http.Handler {
 	top := mux.NewRouter()
 	top.PathPrefix("/v1").Handler(http.StripPrefix("/v1", router))
 
-	router.Path("/v1/me").Methods("GET").HandlerFunc(api.GetMe)
-	router.Path("/v1/users/{userId}/generateToken").Methods("GET").HandlerFunc(api.GetGenerateToken)
+	router.Path("/me").Methods("GET").HandlerFunc(api.GetMe)
+	router.Path("/users/{userId}/generateToken").Methods("GET").HandlerFunc(api.GetGenerateToken)
 
 	return top
 }

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 
 	// Vendor
@@ -64,6 +65,7 @@ func (api *API) GetGenerateToken(rw http.ResponseWriter, r *http.Request) {
 	// Make sure the user to be modified matches the requester.
 	// We don't want the users to be modifying each other.
 	if user.Id != userId {
+		log.Printf("%v != %v\n", user.Id, userId)
 		httpStatus(rw, http.StatusForbidden)
 		return
 	}
