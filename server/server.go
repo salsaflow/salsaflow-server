@@ -22,7 +22,6 @@ import (
 	"github.com/goincremental/negroni-sessions/cookiestore"
 	"github.com/gorilla/mux"
 	"github.com/unrolled/secure"
-	"golang.org/x/oauth2"
 	"gopkg.in/tylerb/graceful.v1"
 )
 
@@ -147,12 +146,12 @@ func (srv *Server) Run() {
 }
 
 func (srv *Server) handleRootPath(rw http.ResponseWriter, r *http.Request) {
-	user, err := srv.getProfile(r)
+	user, err := getRequester(r, srv.store)
 	if err != nil {
 		httpError(rw, r, err)
 		return
 	}
-	fmt.Println(user)
+
 	if user != nil {
 		http.Redirect(rw, r, srv.relativePath("/configurations"), http.StatusFound)
 	} else {
@@ -162,7 +161,7 @@ func (srv *Server) handleRootPath(rw http.ResponseWriter, r *http.Request) {
 
 func (srv *Server) handleLogin(rw http.ResponseWriter, r *http.Request) {
 	// Make sure the user is really not authenticated.
-	user, err := srv.getProfile(r)
+	user, err := getRequester(r, srv.store)
 	if err != nil {
 		httpError(rw, r, err)
 		return
@@ -207,7 +206,7 @@ func (srv *Server) handleLogin(rw http.ResponseWriter, r *http.Request) {
 
 func (srv *Server) handleProfile(rw http.ResponseWriter, r *http.Request) {
 	// Get the user record.
-	user, err := srv.getProfile(r)
+	user, err := getRequester(r, srv.store)
 	if err != nil {
 		httpError(rw, r, err)
 		return
@@ -241,7 +240,7 @@ func (srv *Server) handleProfile(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *Server) handleConfigurations(rw http.ResponseWriter, r *http.Request) {
-	user, err := srv.getProfile(r)
+	user, err := getRequester(r, srv.store)
 	if err != nil {
 		httpError(rw, r, err)
 		return
@@ -275,7 +274,7 @@ func (srv *Server) handleConfigurations(rw http.ResponseWriter, r *http.Request)
 }
 
 func (srv *Server) handleCommits(rw http.ResponseWriter, r *http.Request) {
-	user, err := srv.getProfile(r)
+	user, err := getRequester(r, srv.store)
 	if err != nil {
 		httpError(rw, r, err)
 		return
@@ -321,51 +320,6 @@ func (srv *Server) api() http.Handler {
 	return top
 }
 
-func (srv *Server) getProfile(r *http.Request) (*common.User, error) {
-	// Get session for the given HTTP request.
-	var (
-		session = sessions.GetSession(r)
-		token   = noauth2.GetToken(r)
-	)
-
-	// TODO: Ugly as hell. This should be somewhere else.
-	if token == nil || !token.Valid() {
-		deleteProfile(session)
-		return nil, nil
-	}
-
-	// Get the user profile from the session.
-	profile, err := unmarshalProfile(session)
-	if err != nil {
-		return nil, err
-	}
-
-	// In case there is no profile, fetch it and store it in the session.
-	if profile == nil {
-		var (
-			cfg = (*oauth2.Config)(srv.oauth2Config)
-			tok = (oauth2.Token)(token.Get())
-		)
-		profile, err = fetchProfile(cfg, &tok)
-		if err != nil {
-			return nil, err
-		}
-		if err := marshalProfile(session, profile); err != nil {
-			return nil, err
-		}
-	}
-
-	// Fetch the user record from the store.
-	user, err := srv.store.FindUserByEmail(profile.Email)
-	if err != nil {
-		return nil, err
-	}
-	if user == nil {
-		return srv.createUser(profile)
-	}
-	return user, nil
-}
-
 func (srv *Server) loginRequired(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		var (
@@ -381,51 +335,6 @@ func (srv *Server) loginRequired(next http.Handler) http.Handler {
 			next.ServeHTTP(rw, r)
 		}
 	})
-}
-
-func (srv *Server) loginOrTokenRequired(next http.Handler) http.HandlerFunc {
-	return func(rw http.ResponseWriter, r *http.Request) {
-		// Try the session token.
-		token := noauth2.GetToken(r)
-		if token != nil && token.Valid() {
-			next.ServeHTTP(rw, r)
-			return
-		}
-
-		// Try the access token.
-		accessToken := r.Header.Get(TokenHeader)
-		if accessToken != "" {
-			user, err := srv.store.FindUserByToken(accessToken)
-			if err != nil {
-				httpError(rw, r, err)
-				return
-			}
-			if user != nil {
-				next.ServeHTTP(rw, r)
-				return
-			}
-		}
-
-		// Otherwise, unauthorized.
-		http.Error(rw, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-		return
-	}
-}
-
-func (srv *Server) createUser(profile *userProfile) (*common.User, error) {
-	user := &common.User{
-		Name:  profile.Name,
-		Email: profile.Email,
-	}
-	token, err := generateAccessToken()
-	if err != nil {
-		return nil, err
-	}
-	user.Token = token
-	if err := srv.store.SaveUser(user); err != nil {
-		return nil, err
-	}
-	return user, nil
 }
 
 func (srv *Server) relativePath(pth string) string {

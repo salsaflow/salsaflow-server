@@ -3,8 +3,6 @@ package server
 import (
 	// Stdlib
 	"bytes"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -99,15 +97,4 @@ func (api *API) GetGenerateToken(rw http.ResponseWriter, r *http.Request) {
 
 	rw.Header().Set("Content-Type", "application/json")
 	io.Copy(rw, bytes.NewReader(body))
-}
-
-func generateAccessToken() (token string, err error) {
-	// Generate new token.
-	tok := make([]byte, TokenByteLen)
-	if _, err := rand.Read(tok); err != nil {
-		return "", err
-	}
-
-	// Encode the token using hex and return.
-	return hex.EncodeToString(tok), nil
 }
