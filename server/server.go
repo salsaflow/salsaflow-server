@@ -226,10 +226,12 @@ func (srv *Server) handleProfile(rw http.ResponseWriter, r *http.Request) {
 		PathPrefix string
 		Title      string
 		User       *common.User
+		LogoutURL  string
 	}{
 		srv.pathPrefix,
 		"Profile",
 		user,
+		srv.relativePath("/auth/google/logout?next=") + url.QueryEscape("/"),
 	}
 	if err := t.Execute(&content, ctx); err != nil {
 		httpError(rw, r, err)
