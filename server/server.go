@@ -320,10 +320,7 @@ func (srv *Server) api() http.Handler {
 	router.Path("/users/{userId}/generateToken").Methods("GET").HandlerFunc(api.GetGenerateToken)
 
 	// Cover the whole API with token authentication.
-	// TODO: Insert authentication middleware.
-	n := negroni.New()
-	n.UseHandler(topRouter)
-	return n
+	return srv.loginOrTokenRequired(topRouter)
 }
 
 func (srv *Server) getProfile(r *http.Request) (*common.User, error) {
