@@ -21,19 +21,52 @@ type API struct {
 	store DataStore
 }
 
-// GetGenerateToken handles GET /users/{userId}/generateToken
-func (api *API) GetGenerateToken(rw http.ResponseWriter, r *http.Request) {
-	// Get user ID.
-	userId := mux.Vars(r)["userId"]
-
-	// Fetch user record for the given ID.
-	user, err := api.store.FindUserById(userId)
+// GetMe handles GET /me.
+//
+// It is possible to authenticate with a session here, no need for a token.
+func (api *API) GetMe(rw http.ResponseWriter, r *http.Request) {
+	// Get the requesting user record.
+	user, err := getRequester(r, api.store)
 	if err != nil {
 		httpError(rw, r, err)
 		return
 	}
 	if user == nil {
-		http.Error(rw, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		httpStatus(rw, http.StatusForbidden)
+		return
+	}
+
+	// Write the response.
+	body, err := json.Marshal(user)
+	if err != nil {
+		httpError(rw, r, err)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	io.Copy(rw, bytes.NewReader(body))
+}
+
+// GetGenerateToken handles GET /users/{userId}/generateToken
+func (api *API) GetGenerateToken(rw http.ResponseWriter, r *http.Request) {
+	// Get the requesting user record.
+	user, err := getRequester(r, api.store)
+	if err != nil {
+		httpError(rw, r, err)
+		return
+	}
+	if user == nil {
+		httpStatus(rw, http.StatusForbidden)
+		return
+	}
+
+	// Get user ID.
+	userId := mux.Vars(r)["userId"]
+
+	// Make sure the user to be modified matches the requester.
+	// We don't want the users to be modifying each other.
+	if user.Id != userId {
+		httpStatus(rw, http.StatusForbidden)
 		return
 	}
 

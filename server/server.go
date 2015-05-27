@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
@@ -317,6 +316,9 @@ func (srv *Server) api() http.Handler {
 	topRouter := mux.NewRouter()
 	topRouter.PathPrefix("/v1").Handler(http.StripPrefix("/v1", router))
 
+	router.Path("/me").Methods("GET").HandlerFunc(api.GetMe)
+
+	// TODO: Make sure the ID corresponds with the user sending the request.
 	router.Path("/users/{userId}/generateToken").Methods("GET").HandlerFunc(api.GetGenerateToken)
 
 	// Cover the whole API with token authentication.
@@ -440,9 +442,4 @@ func (srv *Server) loadTemplates(fileNames ...string) (*template.Template, error
 		paths = append(paths, filepath.Join(srv.rootDir, "templates", fileName))
 	}
 	return template.ParseFiles(paths...)
-}
-
-func httpError(w http.ResponseWriter, r *http.Request, err error) {
-	log.Printf("[ERROR] %v %v -> %v\n", r.Method, r.URL.Path, err)
-	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
