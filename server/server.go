@@ -3,6 +3,7 @@ package server
 import (
 	// Stdlib
 	"bytes"
+	"fmt"
 	"html/template"
 	"io"
 	"log"
@@ -305,7 +306,8 @@ func (srv *Server) loginRequired(next http.Handler) http.Handler {
 		if token == nil || !token.Valid() {
 			deleteProfile(session)
 			noauth2.SetToken(r, nil)
-			http.Redirect(rw, r, srv.relativePath("/login"), http.StatusTemporaryRedirect)
+			next := url.QueryEscape(r.URL.RequestURI())
+			http.Redirect(rw, r, fmt.Sprintf("%v?next=%v", noauth2.PathLogin, next), http.StatusTemporaryRedirect)
 		} else {
 			next.ServeHTTP(rw, r)
 		}
