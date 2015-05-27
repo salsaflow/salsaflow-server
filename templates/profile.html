@@ -55,15 +55,14 @@
       btn.text("Show");
       btn.removeClass("btn-success");
       btn.addClass("btn-danger");
-      tokenVisible = false;
-      renderToken();
     } else {
       btn.text("Hide");
       btn.removeClass("btn-danger");
       btn.addClass("btn-success");
-      tokenVisible = true;
-      renderToken();
     }
+
+    tokenVisible = !tokenVisible;
+    renderToken();
   }
 
   // Token regeneration.
