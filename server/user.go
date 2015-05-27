@@ -21,6 +21,7 @@ var (
 	errProfileMissing = errors.New("session profile is missing")
 )
 
+// getUserFromToken returns the user record associated with the current API token.
 func getUserFromToken(r *http.Request, store DataStore) (*common.User, error) {
 	token := r.Header.Get(TokenHeader)
 	if token == "" {
@@ -29,6 +30,9 @@ func getUserFromToken(r *http.Request, store DataStore) (*common.User, error) {
 	return store.FindUserByToken(token)
 }
 
+// getUserFromSession returns the user record associated with the current session.
+// In case there is no session token, errTokenMissing is returned.
+// In case there is no profile stored in the session, errProfileMissing is returned.
 func getUserFromSession(r *http.Request, store DataStore) (*common.User, error) {
 	var (
 		session = sessions.GetSession(r)
