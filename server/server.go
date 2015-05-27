@@ -169,7 +169,7 @@ func (srv *Server) handleRootPath(rw http.ResponseWriter, r *http.Request) {
 		srv.pathPrefix,
 		"Home",
 		user,
-		srv.relativePath("/auth/google/logout?next=") + url.QueryEscape("/"),
+		srv.relativePath("/auth/google/logout?next=") + url.QueryEscape(srv.relativePath("/login")),
 	}
 	if err := t.Execute(&content, ctx); err != nil {
 		httpError(rw, r, err)
@@ -232,7 +232,7 @@ func (srv *Server) handleProfile(rw http.ResponseWriter, r *http.Request) {
 		srv.pathPrefix,
 		"Profile",
 		user,
-		srv.relativePath("/auth/google/logout?next=") + url.QueryEscape("/"),
+		srv.relativePath("/auth/google/logout?next=") + url.QueryEscape(srv.relativePath("/login")),
 	}
 	if err := t.Execute(&content, ctx); err != nil {
 		httpError(rw, r, err)
